@@ -217,7 +217,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val localProfile = dataService.readLocalServerProfile(appContext)
                 if (localProfile != null && localProfile.engineVersionId != profile.engineVersionId) {
                     val settings = dataService.readProperties()
-                    dataService.saveLocalServerProfile(settings, profile.engineId, profile.engineVersionId, profile.iconPath)
+                    dataService.saveLocalServerProfile(settings, profile.engineId, profile.engineVersionId, profile.bedrockVersion, profile.iconPath)
                 }
             } else {
                 val version = versionCatalog.getDefaultVersion(initialTemplate.id)
@@ -301,7 +301,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         maxPlayers = profile.maxPlayers
                     )
                     serverDataService.writeProperties(settings)
-                    serverDataService.saveLocalServerProfile(settings, profile.engineId, profile.engineVersionId, finalIconPath)
+                    serverDataService.saveLocalServerProfile(settings, profile.engineId, profile.engineVersionId, profile.bedrockVersion, finalIconPath)
                     
                     selectServer(profile.id)
                     _operationInProgress.value = false
@@ -346,7 +346,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             maxPlayers = updated.maxPlayers
                         )
                         serverDataService.writeProperties(newSettings)
-                        serverDataService.saveLocalServerProfile(newSettings, updated.engineId, updated.engineVersionId, updated.iconPath)
+                        serverDataService.saveLocalServerProfile(newSettings, updated.engineId, updated.engineVersionId, updated.bedrockVersion, updated.iconPath)
                         
                         _memoryMb.value = updated.memoryMb
                         _serverSettings.value = newSettings

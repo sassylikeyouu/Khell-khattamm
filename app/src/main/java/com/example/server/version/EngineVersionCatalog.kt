@@ -17,27 +17,61 @@ class EngineVersionCatalog(private val context: Context) {
             
             for (i in 0 until versionsArray.length()) {
                 val obj = versionsArray.getJSONObject(i)
+                val id = obj.getString("id")
+                val engineId = obj.getString("engineId")
+                val downloadUrl = obj.getString("downloadUrl")
+                val jarFileName = obj.getString("jarFileName")
+                val compatibilityMode = try { 
+                    CompatibilityMode.valueOf(obj.optString("compatibilityMode", "SINGLE_VERSION")) 
+                } catch(e: Exception) { 
+                    CompatibilityMode.SINGLE_VERSION 
+                }
+                
+                val recommendedBedrockVersion = if (obj.isNull("recommendedBedrockVersion")) null else obj.optString("recommendedBedrockVersion", null as String?)
+                val compatibilitySummary = if (obj.isNull("compatibilitySummary")) null else obj.optString("compatibilitySummary", null as String?)
+
                 val supportedArray = obj.optJSONArray("supportedBedrockVersions")
                 val supportedList = mutableListOf<String>()
                 if (supportedArray != null) {
                     for (j in 0 until supportedArray.length()) {
-                        supportedList.add(supportedArray.getString(j))
+                        val v = supportedArray.getString(j)
+                        if (v.isNotBlank()) supportedList.add(v)
                     }
                 }
 
+                // Validation
+                if (id.isBlank() || engineId.isBlank() || downloadUrl.isBlank() || jarFileName.isBlank()) {
+                    android.util.Log.e("EngineVersionCatalog", "Rejecting malformed entry: $id")
+                    continue
+                }
+                if (list.any { it.id == id }) {
+                    android.util.Log.e("EngineVersionCatalog", "Rejecting duplicate ID: $id")
+                    continue
+                }
+                if (recommendedBedrockVersion != null && !supportedList.contains(recommendedBedrockVersion)) {
+                    android.util.Log.e("EngineVersionCatalog", "Rejecting entry: recommendedBedrockVersion not in supported list for $id")
+                    continue
+                }
+                if (compatibilityMode == CompatibilityMode.SINGLE_VERSION && supportedList.size > 1) {
+                    android.util.Log.e("EngineVersionCatalog", "Rejecting entry: SINGLE_VERSION but multiple supported versions for $id")
+                    continue
+                }
+
                 list.add(EngineVersion(
-                    id = obj.getString("id"),
-                    engineId = obj.getString("engineId"),
+                    id = id,
+                    engineId = engineId,
                     versionName = obj.getString("versionName"),
                     displayName = obj.getString("displayName"),
                     channel = ReleaseChannel.valueOf(obj.getString("channel")),
-                    downloadUrl = obj.getString("downloadUrl"),
-                    jarFileName = obj.getString("jarFileName"),
+                    downloadUrl = downloadUrl,
+                    jarFileName = jarFileName,
                     requiredJavaVersion = obj.getInt("requiredJavaVersion"),
                     compatibilityLabel = obj.getString("compatibilityLabel"),
                     recommended = obj.getBoolean("recommended"),
                     supportedBedrockVersions = supportedList,
-                    recommendedBedrockVersion = obj.optString("recommendedBedrockVersion", null)
+                    recommendedBedrockVersion = recommendedBedrockVersion,
+                    compatibilityMode = compatibilityMode,
+                    compatibilitySummary = compatibilitySummary
                 ))
             }
             list

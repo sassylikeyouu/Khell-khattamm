@@ -159,6 +159,7 @@ data class LocalServerProfile(
     val serverName: String,
     val templateId: String,
     val engineVersionId: String,
+    val bedrockVersion: String,
     val levelName: String,
     val iconPath: String?,
     val createdAt: Long

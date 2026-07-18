@@ -49,7 +49,11 @@ class ServerProfileRepository(private val context: Context) {
                 } else {
                     migrationNeeded = true
                     val version = versionCatalog.findVersion(versionId)
-                    version?.recommendedBedrockVersion ?: ""
+                    if (version != null && version.recommendedBedrockVersion != null && version.supportedBedrockVersions.contains(version.recommendedBedrockVersion)) {
+                        version.recommendedBedrockVersion
+                    } else {
+                        ""
+                    }
                 }
 
                 list.add(parseProfile(obj, versionId, bedrockVersion))

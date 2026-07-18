@@ -12,8 +12,9 @@
       "requiredJavaVersion": 21,
       "compatibilityLabel": "Bedrock compatibility is provided by PowerNukkitX",
       "recommended": true,
-      "supportedBedrockVersions": ["1.20.80", "1.21.0"],
-      "recommendedBedrockVersion": "1.21.0"
+      "supportedBedrockVersions": ["1.26.30"],
+      "recommendedBedrockVersion": "1.26.30",
+      "compatibilityMode": "SINGLE_VERSION"
     },
     {
       "id": "powernukkit:1.5.2.1-PN",
@@ -26,8 +27,9 @@
       "requiredJavaVersion": 21,
       "compatibilityLabel": "Bedrock compatibility is provided by PowerNukkit",
       "recommended": true,
-      "supportedBedrockVersions": ["1.20.0", "1.20.10"],
-      "recommendedBedrockVersion": "1.20.10"
+      "supportedBedrockVersions": ["1.17.40"],
+      "recommendedBedrockVersion": "1.17.40",
+      "compatibilityMode": "SINGLE_VERSION"
     },
     {
       "id": "nukkit-pm1e:4437",
@@ -40,8 +42,9 @@
       "requiredJavaVersion": 21,
       "compatibilityLabel": "Bedrock compatibility is provided by the engine",
       "recommended": true,
-      "supportedBedrockVersions": ["1.20.0", "1.20.50"],
-      "recommendedBedrockVersion": "1.20.50"
+      "supportedBedrockVersions": ["1.26.30"],
+      "recommendedBedrockVersion": "1.26.30",
+      "compatibilityMode": "SINGLE_VERSION"
     },
     {
       "id": "cloudburst:1.0-20260616.184029-1239",
@@ -54,8 +57,9 @@
       "requiredJavaVersion": 21,
       "compatibilityLabel": "Bedrock compatibility is provided by Cloudburst",
       "recommended": true,
-      "supportedBedrockVersions": ["1.21.0", "1.21.2"],
-      "recommendedBedrockVersion": "1.21.2"
+      "supportedBedrockVersions": [],
+      "recommendedBedrockVersion": null,
+      "compatibilityMode": "UNKNOWN"
     },
     {
       "id": "nukkit-mot:rolling-java25",
@@ -68,8 +72,10 @@
       "requiredJavaVersion": 25,
       "compatibilityLabel": "Rolling build resolved by the existing Nukkit-MOT Jenkins provider",
       "recommended": false,
-      "supportedBedrockVersions": ["1.21.0"],
-      "recommendedBedrockVersion": "1.21.0"
+      "supportedBedrockVersions": ["1.26.30"],
+      "recommendedBedrockVersion": "1.26.30",
+      "compatibilityMode": "MULTI_VERSION",
+      "compatibilitySummary": "Multi-version build; also accepts supported older Bedrock protocols."
     }
   ]
 }

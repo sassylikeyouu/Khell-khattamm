@@ -63,38 +63,42 @@ class ServerManager(
             val serverDir = profile?.let { File(it.serverDirectory) } ?: File(context.filesDir, "minecraft/engines/default")
             
             val versionCatalog = com.example.server.version.EngineVersionCatalog(context)
-            val versionId = profile?.engineVersionId ?: ""
             
-            // Problem 2: Do not silently replace invalid version IDs
-            val engineVersion = versionCatalog.findVersion(versionId)
-            
-            if (engineVersion == null || engineVersion.engineId != activeTemplate.id) {
-                if (engineVersion == null) {
-                    onLog("ERROR: Selected engine build '$versionId' could not be resolved from the version catalogue.")
-                } else {
-                    onLog("ERROR: Selected engine build '${engineVersion.displayName}' does not belong to the active engine '${activeTemplate.name}'.")
-                }
+            if (profile == null) {
+                onLog("ERROR: No server profile selected.")
                 onStatusChange(ServerStatus.FAILED)
-                // Return a dummy engine
-                return object : ServerEngine {
-                    override fun startServer(memoryMb: Int) {
-                        onLog("ERROR: Server cannot start due to unresolved engine build.")
-                    }
-                    override fun stopServer() {}
-                    override fun restartServer() {}
-                    override fun sendCommand(command: String) {}
-                    override fun getStatus(): ServerStatus = ServerStatus.FAILED
-                    override fun setOnlineMode(online: Boolean) {}
-                    override fun installPlugin(url: String, fileName: String) {}
-                    override fun backupWorld() {}
-                    override fun getServerDir(): File = serverDir
-                }
+                return createDummyEngine(serverDir)
             }
+
+            val validation = com.example.server.version.EngineCompatibilityValidator.validate(profile, versionCatalog)
+            if (!validation.success) {
+                onLog("ERROR: ${validation.message}")
+                onStatusChange(ServerStatus.FAILED)
+                return createDummyEngine(serverDir)
+            }
+
+            val engineVersion = versionCatalog.findVersion(profile.engineVersionId)!!
             
             currentEngine = ServerFactory.createEngine(context, serverDir, activeTemplate, engineVersion, onLog, internalOnStatusChange)
             currentEngine?.setOnlineMode(onlineMode)
         }
         return currentEngine!!
+    }
+
+    private fun createDummyEngine(serverDir: File): ServerEngine {
+        return object : ServerEngine {
+            override fun startServer(memoryMb: Int) {
+                onLog("ERROR: Server cannot start due to unresolved engine build or compatibility error.")
+            }
+            override fun stopServer() {}
+            override fun restartServer() {}
+            override fun sendCommand(command: String) {}
+            override fun getStatus(): ServerStatus = ServerStatus.FAILED
+            override fun setOnlineMode(online: Boolean) {}
+            override fun installPlugin(url: String, fileName: String) {}
+            override fun backupWorld() {}
+            override fun getServerDir(): File = serverDir
+        }
     }
 
     fun switchProfile() {

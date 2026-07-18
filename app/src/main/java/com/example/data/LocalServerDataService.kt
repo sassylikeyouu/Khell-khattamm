@@ -278,6 +278,7 @@ class LocalServerDataService(private val rootProvider: () -> File) {
         settings: ServerSettingsState,
         templateId: String,
         engineVersionId: String,
+        bedrockVersion: String,
         iconPath: String?
     ): OperationResult {
         val dir = File(root, ".minehost").apply { mkdirs() }
@@ -289,6 +290,7 @@ class LocalServerDataService(private val rootProvider: () -> File) {
         p["serverName"] = settings.serverName
         p["templateId"] = templateId
         p["engineVersionId"] = engineVersionId
+        p["bedrockVersion"] = bedrockVersion
         p["levelName"] = settings.levelName
         p["iconPath"] = iconPath ?: ""
         if (p.getProperty("createdAt").isNullOrBlank()) {
@@ -323,11 +325,25 @@ class LocalServerDataService(private val rootProvider: () -> File) {
             resolved
         }
 
+        val bedrockVersion = if (p.containsKey("bedrockVersion")) {
+            p.getProperty("bedrockVersion")
+        } else {
+            val catalog = com.example.server.version.EngineVersionCatalog(context)
+            val version = catalog.findVersion(engineVersionId)
+            val resolved = version?.recommendedBedrockVersion ?: ""
+            if (resolved.isNotEmpty()) {
+                p["bedrockVersion"] = resolved
+                runCatching { file.outputStream().use { p.store(it, "MineHost Local Server Profile") } }
+            }
+            resolved
+        }
+
         return LocalServerProfile(
             created = p.getProperty("created", "false").toBoolean(),
             serverName = p.getProperty("serverName", "Local Bedrock Server"),
             templateId = templateId,
             engineVersionId = engineVersionId,
+            bedrockVersion = bedrockVersion,
             levelName = p.getProperty("levelName", "world"),
             iconPath = p.getProperty("iconPath").takeIf { it.isNotBlank() },
             createdAt = p.getProperty("createdAt", "0").toLongOrNull() ?: 0L

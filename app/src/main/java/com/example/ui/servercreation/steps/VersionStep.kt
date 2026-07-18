@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.server.version.BedrockVersionOption
+import com.example.server.version.CompatibilityMode
 import com.example.server.version.EngineVersion
 import com.example.server.version.ReleaseChannel
 import com.example.ui.servercreation.CreateServerDraft
@@ -23,8 +25,8 @@ import com.example.ui.servercreation.WizardTheme
 @Composable
 fun VersionStep(
     draft: CreateServerDraft,
-    bedrockVersions: List<Pair<String, EngineVersion>>,
-    onBedrockVersionSelected: (String) -> Unit
+    bedrockVersions: List<BedrockVersionOption>,
+    onBedrockVersionSelected: (BedrockVersionOption) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -49,19 +51,18 @@ fun VersionStep(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "Compatibility information is not available for this engine build.",
+                    "Verified Minecraft compatibility is not available for this engine build.",
                     color = WizardTheme.SecondaryText,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
         } else {
-            bedrockVersions.forEach { (bv, engineVersion) ->
+            bedrockVersions.forEach { option ->
                 BedrockVersionCard(
-                    bedrockVersion = bv,
-                    engineVersion = engineVersion,
-                    selected = draft.bedrockVersion == bv,
-                    onClick = { onBedrockVersionSelected(bv) }
+                    option = option,
+                    selected = draft.bedrockVersion == option.bedrockVersion && draft.engineVersionId == option.engineVersionId,
+                    onClick = { onBedrockVersionSelected(option) }
                 )
             }
         }
@@ -70,8 +71,7 @@ fun VersionStep(
 
 @Composable
 private fun BedrockVersionCard(
-    bedrockVersion: String,
-    engineVersion: EngineVersion,
+    option: BedrockVersionOption,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -106,7 +106,7 @@ private fun BedrockVersionCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Check,
+                    imageVector = androidx.compose.material.icons.Icons.Default.Check,
                     contentDescription = null,
                     tint = if (selected) WizardTheme.PrimaryBlue else WizardTheme.DisabledText,
                     modifier = Modifier.size(20.dp)
@@ -127,7 +127,7 @@ private fun BedrockVersionCard(
                             color = WizardTheme.SecondaryText
                         )
                         Text(
-                            text = bedrockVersion,
+                            text = option.bedrockVersion,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = WizardTheme.PrimaryText
@@ -137,7 +137,7 @@ private fun BedrockVersionCard(
                         )
                     }
                     
-                    if (engineVersion.recommended) {
+                    if (option.recommended) {
                         Spacer(Modifier.width(8.dp))
                         VersionTag(text = "Recommended", color = WizardTheme.Success)
                     }
@@ -146,10 +146,18 @@ private fun BedrockVersionCard(
                 Spacer(Modifier.height(4.dp))
                 
                 Text(
-                    text = "Compatible build: ${engineVersion.displayName}",
+                    text = "Compatible build: ${option.engineBuildName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = WizardTheme.SecondaryText
                 )
+
+                if (option.compatibilityMode == CompatibilityMode.MULTI_VERSION && !option.compatibilitySummary.isNullOrBlank()) {
+                    Text(
+                        text = option.compatibilitySummary!!,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = WizardTheme.SecondaryText.copy(alpha = 0.8f)
+                    )
+                }
             }
 
             if (selected) {
@@ -160,7 +168,7 @@ private fun BedrockVersionCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.Check,
+                        androidx.compose.material.icons.Icons.Default.Check,
                         contentDescription = "Selected",
                         tint = Color.White,
                         modifier = Modifier.size(16.dp)
