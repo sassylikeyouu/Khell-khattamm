@@ -74,12 +74,12 @@ private fun VersionCard(
             .fillMaxWidth()
             .border(
                 width = if (selected) 2.dp else 1.dp,
-                color = if (selected) WizardTheme.PrimaryBlue else Color(0xFFE0E0E0),
-                shape = RoundedCornerShape(12.dp)
+                color = if (selected) WizardTheme.PrimaryBlue else WizardTheme.Border,
+                shape = RoundedCornerShape(WizardTheme.OptionCardRadius)
             ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(WizardTheme.OptionCardRadius),
         color = if (selected) WizardTheme.PrimaryBlue.copy(alpha = 0.05f) else Color.White,
-        tonalElevation = if (selected) 2.dp else 0.dp
+        tonalElevation = if (selected) 4.dp else 0.dp
     ) {
         Row(
             modifier = Modifier
@@ -87,42 +87,57 @@ private fun VersionCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Version Type Icon
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        if (selected) WizardTheme.PrimaryBlue.copy(alpha = 0.1f) 
+                        else WizardTheme.DisabledBackground,
+                        RoundedCornerShape(10.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = when(version.channel) {
+                        ReleaseChannel.STABLE -> Icons.Default.Check
+                        else -> Icons.Default.Check
+                    },
+                    contentDescription = null,
+                    tint = if (selected) WizardTheme.PrimaryBlue else WizardTheme.DisabledText,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(Modifier.width(14.dp))
+
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text(
                         text = version.displayName,
+                        modifier = Modifier.weight(1f, fill = false),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = WizardTheme.PrimaryText
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     
                     if (version.recommended) {
                         Spacer(Modifier.width(8.dp))
-                        Badge(
-                            containerColor = Color(0xFF4CAF50),
-                            contentColor = Color.White
-                        ) {
-                            Text("Recommended", modifier = Modifier.padding(horizontal = 4.dp), fontSize = 10.sp)
-                        }
+                        VersionTag(text = "Recommended", color = WizardTheme.Success)
                     }
 
                     if (version.channel == ReleaseChannel.SNAPSHOT) {
                         Spacer(Modifier.width(8.dp))
-                        Badge(
-                            containerColor = Color(0xFFFF9800),
-                            contentColor = Color.White
-                        ) {
-                            Text("Snapshot", modifier = Modifier.padding(horizontal = 4.dp), fontSize = 10.sp)
-                        }
+                        VersionTag(text = "Snapshot", color = WizardTheme.Warning)
                     } else if (version.channel == ReleaseChannel.PREVIEW) {
                         Spacer(Modifier.width(8.dp))
-                        Badge(
-                            containerColor = Color(0xFF9C27B0),
-                            contentColor = Color.White
-                        ) {
-                            Text("Preview", modifier = Modifier.padding(horizontal = 4.dp), fontSize = 10.sp)
-                        }
+                        VersionTag(text = "Preview", color = WizardTheme.AccentPurple)
                     }
                 }
                 
@@ -142,13 +157,41 @@ private fun VersionCard(
             }
 
             if (selected) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = "Selected",
-                    tint = WizardTheme.PrimaryBlue,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(26.dp)
+                        .background(WizardTheme.PrimaryBlue, androidx.compose.foundation.shape.CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = "Selected",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun VersionTag(
+    text: String,
+    color: Color
+) {
+    Surface(
+        color = color,
+        shape = RoundedCornerShape(4.dp)
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp,
+                color = Color.White
+            )
+        )
     }
 }
