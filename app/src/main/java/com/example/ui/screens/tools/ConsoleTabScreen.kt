@@ -26,7 +26,8 @@ fun ConsoleTabScreen(viewModel: MainViewModel, onNavigate: (String) -> Unit) {
             MineHostBrandHeader(
                 compact = true,
                 onProfile = { onNavigate(MineHostDestination.Profile.route) },
-                onNotifications = { onNavigate(MineHostDestination.Notifications.route) }
+                onNotifications = { onNavigate(MineHostDestination.Notifications.route) },
+                showNotifications = false
             )
             
             Text("Live Console", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)

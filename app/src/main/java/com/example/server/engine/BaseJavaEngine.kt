@@ -25,21 +25,21 @@ import com.example.server.version.EngineVersionCatalog
 import com.example.server.version.EngineVersion
 import com.example.server.version.ReleaseChannel
 
+import com.example.server.version.InstalledEngineVersionRepository
+import com.example.server.version.InstalledEngineVersion
+
 abstract class BaseJavaEngine(
     val context: Context,
     private val serverDir: File,
-    val engineVersionId: String,
+    val engineVersion: EngineVersion,
     val onLog: (String) -> Unit,
     val onStatusChange: (ServerStatus) -> Unit
 ) : ServerEngine {
-    private val versionCatalog = EngineVersionCatalog(context)
-    val engineVersion: EngineVersion? = if (engineVersionId.isNotEmpty()) {
-        versionCatalog.findVersion(engineVersionId)
-    } else null
+    val engineVersionId: String get() = engineVersion.id
 
-    open val serverJarUrl: String get() = engineVersion?.downloadUrl ?: ""
+    open val serverJarUrl: String get() = engineVersion.downloadUrl
     abstract val serverFolderName: String
-    open val serverJarName: String get() = engineVersion?.jarFileName ?: "${serverEngineName.lowercase()}.jar"
+    open val serverJarName: String get() = engineVersion.jarFileName
     abstract val serverEngineName: String
     open val minJavaVersion: Int = 21
     open val maxJavaVersion: Int = 21
@@ -61,7 +61,7 @@ abstract class BaseJavaEngine(
         get() = File(rootServerDir, serverJarName)
         
     val requiredJavaVersion: Int
-        get() = maxJavaVersion
+        get() = engineVersion.requiredJavaVersion
 
     val requiredClassVersion: Double
         get() = if (serverJarName.contains("powernukkit", ignoreCase = true)) 65.0 else 61.0 // PNX requires 65.0
@@ -77,13 +77,12 @@ abstract class BaseJavaEngine(
     fun checkIntegrity() {
         scope.launch {
             val jreValid = JavaRuntimeManager.isJavaReady(context, requiredJavaVersion)
-            val installationMeta = File(rootServerDir, ".minehost/engine-installation.json")
-            val isVersionValid = installationMeta.exists() && installationMeta.readText().contains("\"versionId\":\"$engineVersionId\"")
+            val isVersionValid = InstalledEngineVersionRepository.matches(rootServerDir, engineVersion)
             
             if (!jreValid || !serverJar.exists() || !isVersionValid) {
                 withContext(Dispatchers.Main) { onLog("Some required files are missing or version mismatch. They will be downloaded automatically when you start the server.") }
             } else {
-                withContext(Dispatchers.Main) { onLog("System integrity check passed. Build ${engineVersion?.displayName ?: "Unknown"} is ready.") }
+                withContext(Dispatchers.Main) { onLog("System integrity check passed. Build ${engineVersion.displayName} is ready.") }
             }
         }
     }
@@ -96,11 +95,43 @@ abstract class BaseJavaEngine(
         }
 
         scope.launch {
-            withContext(Dispatchers.Main) { onStatusChange(ServerStatus.PREPARING) }
+            withContext(Dispatchers.Main) { 
+                onLog("Selected engine: $serverEngineName")
+                onLog("Selected build: ${engineVersion.displayName}")
+                onLog("Version ID: $engineVersionId")
+                onLog("Required Java: $requiredJavaVersion")
+                onLog("Expected JAR: $serverJarName")
+                
+                val matches = InstalledEngineVersionRepository.matches(rootServerDir, engineVersion)
+                onLog("Installed version matches: $matches")
+                
+                onStatusChange(ServerStatus.PREPARING) 
+            }
             
             val jreValid = JavaRuntimeManager.isJavaReady(context, requiredJavaVersion)
-            val installationMeta = File(rootServerDir, ".minehost/engine-installation.json")
-            val isVersionValid = installationMeta.exists() && installationMeta.readText().contains("\"versionId\":\"$engineVersionId\"")
+            var isVersionValid = InstalledEngineVersionRepository.matches(rootServerDir, engineVersion)
+
+            // Problem 6: Legacy JAR Migration
+            if (!isVersionValid && serverJar.exists()) {
+                if (InstalledEngineVersionRepository.validateJar(serverJar)) {
+                    val metadata = InstalledEngineVersionRepository.read(rootServerDir)
+                    if (metadata == null) {
+                        onLog("Legacy JAR detected. Validating and registering...")
+                        val installed = InstalledEngineVersion(
+                            engineId = engineVersion.engineId,
+                            versionId = engineVersion.id,
+                            versionName = engineVersion.versionName,
+                            jarFileName = serverJarName,
+                            installedAt = System.currentTimeMillis()
+                        )
+                        if (InstalledEngineVersionRepository.write(rootServerDir, installed)) {
+                            onLog("Existing server build verified and registered.")
+                            isVersionValid = true
+                        }
+                    }
+                }
+            }
+
             val filesMissing = !jreValid || !serverJar.exists() || !isVersionValid
 
             // Start Download Service if files are missing or version mismatch
@@ -122,7 +153,7 @@ abstract class BaseJavaEngine(
 
                 withContext(Dispatchers.Main) { 
                     onStatusChange(ServerStatus.DOWNLOADING)
-                    onLog("Files missing or version mismatch. Initiating setup for ${engineVersion?.displayName}...") 
+                    onLog("Files missing or version mismatch. Initiating setup for ${engineVersion.displayName}...") 
                 }
                 
                 if (!jreValid) {
@@ -140,17 +171,17 @@ abstract class BaseJavaEngine(
                 }
                 
                 if (!serverJar.exists() || !isVersionValid) {
-                    // If version mismatch, clean up old jar first
-                    if (serverJar.exists() && !isVersionValid) {
-                        onLog("Version mismatch. Replacing old build with ${engineVersion?.displayName}...")
-                        serverJar.delete()
-                    }
+                    // Problem 2: Safe replacement flow
+                    val partFile = File(rootServerDir, "$serverJarName.part")
+                    if (partFile.exists()) partFile.delete()
 
-                    withContext(Dispatchers.Main) { onLog("2. Download started: $serverJarName") }
-                    val downloadSuccess = Downloader.downloadServerJar(serverJarUrl, serverJar) { progress: String ->
+                    withContext(Dispatchers.Main) { onLog("Downloading build: $serverJarName") }
+                    val downloadSuccess = Downloader.downloadServerJar(serverJarUrl, partFile) { progress: String ->
                         scope.launch(Dispatchers.Main) { onLog(progress) }
                     }
+                    
                     if (!downloadSuccess) {
+                        if (partFile.exists()) partFile.delete()
                         context.stopService(downloadIntent)
                         withContext(Dispatchers.Main) {
                             onLog("ERROR: Server download failed.")
@@ -159,18 +190,60 @@ abstract class BaseJavaEngine(
                         return@launch
                     }
 
-                    // Save installation metadata
-                    try {
-                        val metaDir = File(rootServerDir, ".minehost").apply { mkdirs() }
-                        val metaFile = File(metaDir, "engine-installation.json")
-                        val metaJson = org.json.JSONObject().apply {
-                            put("versionId", engineVersionId)
-                            put("installedAt", System.currentTimeMillis())
-                            put("jarName", serverJarName)
+                    // Problem 3: Validate downloaded JAR
+                    onLog("Validating downloaded build...")
+                    if (!InstalledEngineVersionRepository.validateJar(partFile)) {
+                        if (partFile.exists()) partFile.delete()
+                        context.stopService(downloadIntent)
+                        withContext(Dispatchers.Main) {
+                            onLog("ERROR: Downloaded build failed validation. It might be corrupted or an invalid response.")
+                            onStatusChange(ServerStatus.FAILED)
                         }
-                        metaFile.writeText(metaJson.toString(2))
+                        return@launch
+                    }
+
+                    // Safe replacement
+                    try {
+                        val backupFile = File(rootServerDir, "$serverJarName.bak")
+                        if (serverJar.exists()) {
+                            if (backupFile.exists()) backupFile.delete()
+                            serverJar.renameTo(backupFile)
+                        }
+
+                        if (partFile.renameTo(serverJar)) {
+                            // Save installation metadata
+                            val installed = InstalledEngineVersion(
+                                engineId = engineVersion.engineId,
+                                versionId = engineVersion.id,
+                                versionName = engineVersion.versionName,
+                                jarFileName = serverJarName,
+                                installedAt = System.currentTimeMillis()
+                            )
+                            if (InstalledEngineVersionRepository.write(rootServerDir, installed)) {
+                                if (backupFile.exists()) backupFile.delete()
+                                onLog("Build installation successful.")
+                            } else {
+                                throw IOException("Failed to write installation metadata.")
+                            }
+                        } else {
+                            throw IOException("Failed to rename .part file to final destination.")
+                        }
                     } catch (e: Exception) {
-                        onLog("Warning: Failed to save installation metadata.")
+                        onLog("ERROR: Installation failed: ${e.message}")
+                        // Attempt restore
+                        val backupFile = File(rootServerDir, "$serverJarName.bak")
+                        if (backupFile.exists()) {
+                            if (serverJar.exists()) serverJar.delete()
+                            backupFile.renameTo(serverJar)
+                            onLog("Restored previous working build.")
+                        }
+                        if (partFile.exists()) partFile.delete()
+                        
+                        context.stopService(downloadIntent)
+                        withContext(Dispatchers.Main) {
+                            onStatusChange(ServerStatus.FAILED)
+                        }
+                        return@launch
                     }
                 }
                 // Stop download service after success
@@ -278,86 +351,7 @@ abstract class BaseJavaEngine(
             if (abortStartup) return@launch
 
             withContext(Dispatchers.Main) {
-                onLog("1. Selected engine: $serverEngineName")
-                onLog("Download URL: $serverJarUrl")
-                onLog("Downloaded filename: $serverJarName")
-                onLog("File location: ${serverJar.absolutePath}")
-                if (serverJar.exists()) {
-                    val sizeMb = serverJar.length() / (1024 * 1024)
-                    onLog("File size: $sizeMb MB")
-                } else {
-                    onLog("File size: 0 MB (Not found)")
-                }
-                
-                // Also print the exact example format from the prompt to be safe
-                onLog("Selected Engine: $serverEngineName")
-                onLog("Jar:\n$serverJarName")
-                onLog("Path:\n${serverJar.absolutePath}")
-                if (serverJar.exists()) {
-                    val sizeMb = serverJar.length() / (1024 * 1024)
-                    onLog("Size:\n$sizeMb MB")
-                } else {
-                    onLog("Size:\n0 MB")
-                }
-            }
-            if (!javaBin.exists()) {
-                withContext(Dispatchers.Main) {
-                    onLog("Error: Java runtime missing")
-                    onLog("File not found: ${javaBin.absolutePath}")
-                    onStatusChange(ServerStatus.FAILED)
-                }
-                return@launch
-            }
-            if (!serverJar.exists()) {
-                withContext(Dispatchers.Main) {
-                    onLog("Error: Server file missing")
-                    onLog("File not found: ${serverJar.absolutePath}")
-                    onStatusChange(ServerStatus.FAILED)
-                }
-                return@launch
-            }
-            
-            withContext(Dispatchers.Main) { onLog("Validating jar file...") }
-            var isValidJar = false
-            try {
-                if (serverJar.length() > 1_000_000) { // at least 1MB
-                    java.util.zip.ZipFile(serverJar).use { zip ->
-                        val manifest = zip.getEntry("META-INF/MANIFEST.MF")
-                        var hasClass = false
-                        val entries = zip.entries()
-                        while (entries.hasMoreElements()) {
-                            val entry = entries.nextElement()
-                            if (entry.name.endsWith(".class")) {
-                                hasClass = true
-                                break
-                            }
-                        }
-                        
-                        if (manifest != null && hasClass) {
-                            val manifestContent = zip.getInputStream(manifest).bufferedReader().readText()
-                            if (manifestContent.contains("Main-Class:")) {
-                                isValidJar = true
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                isValidJar = false
-            }
-            
-            if (!isValidJar) {
-                serverJar.delete()
-                withContext(Dispatchers.Main) {
-                    onLog("Error: Invalid server jar downloaded.")
-                    onLog("Deleted corrupted file. Please try again.")
-                    onStatusChange(ServerStatus.FAILED)
-                }
-                return@launch
-            }
-
-            withContext(Dispatchers.Main) { 
-                onLog("4. Validation passed")
-                onLog("Preparing discovery cache...")
+                onLog("Starting server process...")
             }
             
             val diagPassed = com.example.server.NetworkDiagnosticsManager.runDiagnostics(context, rootServerDir, onLog)

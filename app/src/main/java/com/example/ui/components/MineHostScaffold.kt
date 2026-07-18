@@ -66,12 +66,13 @@ fun MineHostBrandHeader(
     onNotifications: () -> Unit = {},
     onProfile: () -> Unit = {},
     compact: Boolean = false,
-    showProfile: Boolean = true
+    showProfile: Boolean = true,
+    showNotifications: Boolean = true
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(if (compact) 44.dp else 56.dp),
+            .height(if (compact) 32.dp else 56.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (showBack) {
@@ -86,13 +87,15 @@ fun MineHostBrandHeader(
         
         Spacer(Modifier.weight(1f))
         
-        SoftIconButton(
-            icon = Icons.Outlined.Notifications,
-            contentDescription = "Notifications",
-            onClick = onNotifications,
-            showDot = true,
-            size = if (compact) 36.dp else 40.dp
-        )
+        if (showNotifications) {
+            SoftIconButton(
+                icon = Icons.Outlined.Notifications,
+                contentDescription = "Notifications",
+                onClick = onNotifications,
+                showDot = true,
+                size = if (compact) 36.dp else 40.dp
+            )
+        }
         
         if (showProfile) {
             Spacer(Modifier.width(if (compact) 8.dp else 12.dp))

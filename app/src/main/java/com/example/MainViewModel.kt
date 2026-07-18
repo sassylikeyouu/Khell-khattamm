@@ -204,9 +204,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val profile = profiles.value.find { it.id == activeId }
             if (profile != null) {
                 _memoryMb.value = profile.memoryMb
-                _activeTemplate.value = TemplateRegistry.ALL_TEMPLATES.find { it.id == profile.engineId } ?: initialTemplate
-                _activeEngineVersion.value = versionCatalog.findVersion(profile.engineVersionId)
-                serverManager.setTemplate(_activeTemplate.value)
+                val template = TemplateRegistry.ALL_TEMPLATES.find { it.id == profile.engineId } ?: initialTemplate
+                _activeTemplate.value = template
+                val version = versionCatalog.findVersion(profile.engineVersionId) ?: versionCatalog.getDefaultVersion(template.id)
+                _activeEngineVersion.value = version
+                
+                if (version != null) {
+                    serverManager.setTemplate(template, version)
+                } else {
+                    serverManager.setTemplate(template, com.example.server.version.EngineVersion(
+                        id = "placeholder",
+                        engineId = template.id,
+                        versionName = "1.0",
+                        displayName = "Default",
+                        channel = com.example.server.version.ReleaseChannel.STABLE,
+                        downloadUrl = "",
+                        jarFileName = "server.jar",
+                        requiredJavaVersion = 21,
+                        compatibilityLabel = "Latest",
+                        recommended = true
+                    ))
+                }
+                
                 // Migration check: Ensure local profile.properties is in sync with EngineBuild
                 val localProfile = dataService.readLocalServerProfile(appContext)
                 if (localProfile != null && localProfile.engineVersionId != profile.engineVersionId) {
@@ -214,7 +233,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     dataService.saveLocalServerProfile(settings, profile.engineId, profile.engineVersionId, profile.iconPath)
                 }
             } else {
-                serverManager.setTemplate(initialTemplate)
+                val version = versionCatalog.getDefaultVersion(initialTemplate.id)
+                if (version != null) {
+                    serverManager.setTemplate(initialTemplate, version)
+                }
             }
             
             serverManager.setOnlineMode(_onlineMode.value)
@@ -241,10 +263,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val profile = profiles.value.find { it.id == serverId }
         if (profile != null) {
             _memoryMb.value = profile.memoryMb
-            _activeTemplate.value = TemplateRegistry.ALL_TEMPLATES.find { it.id == profile.engineId } ?: initialTemplate
-            _activeEngineVersion.value = versionCatalog.findVersion(profile.engineVersionId)
+            val template = TemplateRegistry.ALL_TEMPLATES.find { it.id == profile.engineId } ?: initialTemplate
+            _activeTemplate.value = template
+            val version = versionCatalog.findVersion(profile.engineVersionId) ?: versionCatalog.getDefaultVersion(template.id)
+            _activeEngineVersion.value = version
+            
             serverManager.switchProfile()
-            serverManager.setTemplate(_activeTemplate.value)
+            if (version != null) {
+                serverManager.setTemplate(template, version)
+            }
             refreshAllLocalData()
             addActivity("Switched server", "Active profile: ${profile.name}", ActivityType.INFO)
         }
@@ -365,9 +392,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         
                         val nextProfile = profiles.value.find { it.id == _selectedServerId.value }
                         if (nextProfile != null) {
-                            _activeTemplate.value = TemplateRegistry.ALL_TEMPLATES.find { it.id == nextProfile.engineId } ?: initialTemplate
+                            val template = TemplateRegistry.ALL_TEMPLATES.find { it.id == nextProfile.engineId } ?: initialTemplate
+                            _activeTemplate.value = template
+                            val version = versionCatalog.findVersion(nextProfile.engineVersionId) ?: versionCatalog.getDefaultVersion(template.id)
+                            _activeEngineVersion.value = version
                             serverManager.switchProfile()
-                            serverManager.setTemplate(_activeTemplate.value)
+                            if (version != null) {
+                                serverManager.setTemplate(template, version)
+                            }
                         } else {
                             serverManager.switchProfile()
                         }
@@ -440,7 +472,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         _activeTemplate.value = template
         prefs.edit().putString("template_id", template.id).apply()
-        serverManager.setTemplate(template)
+        
+        val version = versionCatalog.getDefaultVersion(template.id)
+        _activeEngineVersion.value = version
+        
+        if (version != null) {
+            serverManager.setTemplate(template, version)
+        }
+        
         serverManager.setOnlineMode(_onlineMode.value)
         refreshAllLocalData()
         addActivity("Server engine selected", template.name, ActivityType.SUCCESS)

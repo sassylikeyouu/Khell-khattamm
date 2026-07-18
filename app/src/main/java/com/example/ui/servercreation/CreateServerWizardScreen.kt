@@ -50,7 +50,6 @@ fun CreateServerWizardScreen(
             Column(
                 modifier = Modifier
                     .background(WizardTheme.Background)
-                    .statusBarsPadding()
             ) {
                 MineHostBrandHeader(
                     showBack = true,
@@ -60,7 +59,8 @@ fun CreateServerWizardScreen(
                         }
                     },
                     compact = true,
-                    showProfile = false
+                    showProfile = false,
+                    showNotifications = false
                 )
                 
                 Column(modifier = Modifier.padding(horizontal = WizardTheme.HorizontalPadding)) {
@@ -70,7 +70,7 @@ fun CreateServerWizardScreen(
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.ExtraBold,
                             color = WizardTheme.PrimaryText,
-                            fontSize = 28.sp
+                            fontSize = 22.sp
                         )
                     )
                     Spacer(Modifier.height(WizardTheme.TitleToSubtitle))
@@ -78,8 +78,8 @@ fun CreateServerWizardScreen(
                         "Step ${currentStep.ordinal + 1} of 7 · ${currentStep.title}",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = WizardTheme.PrimaryBlue,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
                         )
                     )
                     Spacer(Modifier.height(WizardTheme.SubtitleToProgress))

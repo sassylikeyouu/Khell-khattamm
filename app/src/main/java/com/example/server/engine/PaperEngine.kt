@@ -8,13 +8,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.File
 
+import com.example.server.version.EngineVersion
+
 class PaperEngine(
     context: Context,
     serverDir: File,
-    engineVersionId: String,
+    engineVersion: EngineVersion,
     onLog: (String) -> Unit,
     onStatusChange: (ServerStatus) -> Unit
-) : BaseJavaEngine(context, serverDir, engineVersionId, onLog, onStatusChange) {
+) : BaseJavaEngine(context, serverDir, engineVersion, onLog, onStatusChange) {
     override val serverFolderName = "paper"
     override val serverEngineName = "Paper"
     override val minJavaVersion = 21

@@ -45,13 +45,13 @@ fun BasicsStep(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Server Artwork
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(160.dp)
                 .clip(RoundedCornerShape(WizardTheme.OptionCardRadius)),
             contentAlignment = Alignment.Center
         ) {

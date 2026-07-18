@@ -7,6 +7,7 @@ import com.example.server.template.ServerTemplate
 import com.example.server.template.TemplateRegistry
 import java.io.File
 import com.example.server.engine.NukkitEngine
+import com.example.server.version.EngineVersion
 import com.example.tunnel.TunnelManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +38,7 @@ class ServerManager(
         if (engine is com.example.server.engine.BaseJavaEngine) engine.checkIntegrity()
     }
     
-    fun setTemplate(template: ServerTemplate) {
+    fun setTemplate(template: ServerTemplate, engineVersion: EngineVersion) {
         if (currentEngine?.getStatus() == ServerStatus.ONLINE) {
             onLog("Cannot change template while server is running.")
             return
@@ -45,8 +46,8 @@ class ServerManager(
         activeTemplate = template
         val profile = profileProvider()
         val serverDir = profile?.let { File(it.serverDirectory) } ?: File(context.filesDir, "minecraft/engines/default")
-        val versionId = profile?.engineVersionId ?: ""
-        currentEngine = ServerFactory.createEngine(context, serverDir, template, versionId, onLog, internalOnStatusChange)
+        
+        currentEngine = ServerFactory.createEngine(context, serverDir, template, engineVersion, onLog, internalOnStatusChange)
         currentEngine?.setOnlineMode(onlineMode)
         onLog("Switched to template: ${template.name}")
     }
@@ -60,8 +61,29 @@ class ServerManager(
         if (currentEngine == null) {
             val profile = profileProvider()
             val serverDir = profile?.let { File(it.serverDirectory) } ?: File(context.filesDir, "minecraft/engines/default")
+            
+            val versionCatalog = com.example.server.version.EngineVersionCatalog(context)
             val versionId = profile?.engineVersionId ?: ""
-            currentEngine = ServerFactory.createEngine(context, serverDir, activeTemplate, versionId, onLog, internalOnStatusChange)
+            val engineVersion = versionCatalog.findVersion(versionId) ?: versionCatalog.getDefaultVersion(activeTemplate.id)
+            
+            if (engineVersion == null) {
+                onLog("ERROR: Could not resolve engine version for ${activeTemplate.id}")
+                onStatusChange(ServerStatus.FAILED)
+                // Return a dummy engine
+                return object : ServerEngine {
+                    override fun startServer(memoryMb: Int) {}
+                    override fun stopServer() {}
+                    override fun restartServer() {}
+                    override fun sendCommand(command: String) {}
+                    override fun getStatus(): ServerStatus = ServerStatus.FAILED
+                    override fun setOnlineMode(online: Boolean) {}
+                    override fun installPlugin(url: String, fileName: String) {}
+                    override fun backupWorld() {}
+                    override fun getServerDir(): File = serverDir
+                }
+            }
+            
+            currentEngine = ServerFactory.createEngine(context, serverDir, activeTemplate, engineVersion, onLog, internalOnStatusChange)
             currentEngine?.setOnlineMode(onlineMode)
         }
         return currentEngine!!
