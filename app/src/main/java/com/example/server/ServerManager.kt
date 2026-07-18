@@ -64,14 +64,22 @@ class ServerManager(
             
             val versionCatalog = com.example.server.version.EngineVersionCatalog(context)
             val versionId = profile?.engineVersionId ?: ""
-            val engineVersion = versionCatalog.findVersion(versionId) ?: versionCatalog.getDefaultVersion(activeTemplate.id)
             
-            if (engineVersion == null) {
-                onLog("ERROR: Could not resolve engine version for ${activeTemplate.id}")
+            // Problem 2: Do not silently replace invalid version IDs
+            val engineVersion = versionCatalog.findVersion(versionId)
+            
+            if (engineVersion == null || engineVersion.engineId != activeTemplate.id) {
+                if (engineVersion == null) {
+                    onLog("ERROR: Selected engine build '$versionId' could not be resolved from the version catalogue.")
+                } else {
+                    onLog("ERROR: Selected engine build '${engineVersion.displayName}' does not belong to the active engine '${activeTemplate.name}'.")
+                }
                 onStatusChange(ServerStatus.FAILED)
                 // Return a dummy engine
                 return object : ServerEngine {
-                    override fun startServer(memoryMb: Int) {}
+                    override fun startServer(memoryMb: Int) {
+                        onLog("ERROR: Server cannot start due to unresolved engine build.")
+                    }
                     override fun stopServer() {}
                     override fun restartServer() {}
                     override fun sendCommand(command: String) {}

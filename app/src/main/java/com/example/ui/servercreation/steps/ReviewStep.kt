@@ -65,6 +65,7 @@ fun ReviewStep(
                 .border(1.dp, WizardTheme.Border, RoundedCornerShape(WizardTheme.MainCardRadius))
                 .background(Color.White)
         ) {
+            ReviewRow(icon = Icons.Outlined.CheckCircle, label = "Minecraft Version", value = draft.bedrockVersion ?: "Unknown")
             ReviewRow(icon = Icons.Outlined.Settings, label = "Engine", value = draft.engine?.name ?: "Bedrock")
             ReviewRow(icon = Icons.Outlined.History, label = "Engine Build", value = engineBuildName)
             ReviewRow(icon = Icons.Outlined.Public, label = "World Type", value = draft.worldType.label)

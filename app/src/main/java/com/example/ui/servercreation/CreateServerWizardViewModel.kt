@@ -17,7 +17,8 @@ class CreateServerWizardViewModel(application: Application) : AndroidViewModel(a
 
     private val _draft = MutableStateFlow(CreateServerDraft(
         engine = TemplateRegistry.BEDROCK_CLOUDBURST_NUKKIT,
-        engineVersionId = versionCatalog.getDefaultVersion(TemplateRegistry.BEDROCK_CLOUDBURST_NUKKIT.id)?.id
+        engineVersionId = versionCatalog.getDefaultVersion(TemplateRegistry.BEDROCK_CLOUDBURST_NUKKIT.id)?.id,
+        bedrockVersion = versionCatalog.getDefaultVersion(TemplateRegistry.BEDROCK_CLOUDBURST_NUKKIT.id)?.recommendedBedrockVersion
     ))
     val draft: StateFlow<CreateServerDraft> = _draft.asStateFlow()
 
@@ -33,27 +34,64 @@ class CreateServerWizardViewModel(application: Application) : AndroidViewModel(a
     }
 
     fun selectEngine(template: ServerTemplate) {
-        val defaultVersion = versionCatalog.getDefaultVersion(template.id)
+        val defaultEngineVersion = versionCatalog.getDefaultVersion(template.id)
+        val defaultBedrockVersion = defaultEngineVersion?.recommendedBedrockVersion ?: defaultEngineVersion?.supportedBedrockVersions?.firstOrNull()
+        
         updateDraft {
             it.copy(
                 engine = template,
-                engineVersionId = defaultVersion?.id
+                engineVersionId = defaultEngineVersion?.id,
+                bedrockVersion = defaultBedrockVersion
             )
         }
     }
 
-    fun selectVersion(version: EngineVersion) {
-        val selectedEngineId = _draft.value.engine?.id ?: return
-        if (version.engineId != selectedEngineId) return
+    fun selectBedrockVersion(bedrockVersion: String) {
+        val engineId = _draft.value.engine?.id ?: return
+        val allEngineVersions = versionCatalog.getVersionsForEngine(engineId)
+        
+        // Find compatible engine build
+        val compatibleBuild = allEngineVersions.filter { 
+            it.supportedBedrockVersions.contains(bedrockVersion) 
+        }.let { compatible ->
+            compatible.find { it.recommended } ?: compatible.find { it.channel == com.example.server.version.ReleaseChannel.STABLE } ?: compatible.firstOrNull()
+        }
 
-        updateDraft {
-            it.copy(engineVersionId = version.id)
+        if (compatibleBuild != null) {
+            updateDraft {
+                it.copy(
+                    bedrockVersion = bedrockVersion,
+                    engineVersionId = compatibleBuild.id
+                )
+            }
         }
     }
 
-    fun getVersionsForCurrentEngine(): List<EngineVersion> {
+    fun getBedrockVersionsForCurrentEngine(): List<Pair<String, EngineVersion>> {
         val engineId = _draft.value.engine?.id ?: return emptyList()
-        return versionCatalog.getVersionsForEngine(engineId)
+        val engineVersions = versionCatalog.getVersionsForEngine(engineId)
+        
+        val result = mutableListOf<Pair<String, EngineVersion>>()
+        val seenBedrockVersions = mutableSetOf<String>()
+
+        // For each engine version, extract its supported bedrock versions
+        // We want to show unique bedrock versions. 
+        // If multiple engine versions support the same bedrock version, 
+        // we'll associate it with the "best" engine version (recommended/stable).
+        
+        val allSupportedBedrockVersions = engineVersions.flatMap { it.supportedBedrockVersions }.distinct()
+        
+        for (bv in allSupportedBedrockVersions) {
+            val compatibleBuild = engineVersions.filter { it.supportedBedrockVersions.contains(bv) }
+                .let { compatible ->
+                    compatible.find { it.recommended } ?: compatible.find { it.channel == com.example.server.version.ReleaseChannel.STABLE } ?: compatible.firstOrNull()
+                }
+            if (compatibleBuild != null) {
+                result.add(bv to compatibleBuild)
+            }
+        }
+        
+        return result
     }
 
     fun getEngineVersion(versionId: String): EngineVersion? {
@@ -84,8 +122,14 @@ class CreateServerWizardViewModel(application: Application) : AndroidViewModel(a
         when (step) {
             WizardStep.BASICS -> draft.serverName.isNotBlank()
             WizardStep.ENGINE -> draft.engine != null
-            WizardStep.VERSION -> draft.engineVersionId != null && 
-                                versionCatalog.findVersion(draft.engineVersionId)?.engineId == draft.engine?.id
+            WizardStep.VERSION -> {
+                val bedrockVersion = draft.bedrockVersion
+                val engineVersionId = draft.engineVersionId
+                if (bedrockVersion.isNullOrBlank() || engineVersionId == null) return@combine false
+                
+                val version = versionCatalog.findVersion(engineVersionId)
+                version != null && version.engineId == draft.engine?.id && version.supportedBedrockVersions.contains(bedrockVersion)
+            }
             else -> true
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -94,11 +138,13 @@ class CreateServerWizardViewModel(application: Application) : AndroidViewModel(a
         val currentDraft = _draft.value
         val engineId = currentDraft.engine?.id ?: TemplateRegistry.BEDROCK_CLOUDBURST_NUKKIT.id
         val versionId = currentDraft.engineVersionId ?: versionCatalog.getDefaultVersion(engineId)?.id ?: return
+        val bedrockVersion = currentDraft.bedrockVersion ?: ""
 
         val creationDraft = ServerCreationDraft(
             name = currentDraft.serverName,
             engineId = engineId,
             engineVersionId = versionId,
+            bedrockVersion = bedrockVersion,
             memoryMb = currentDraft.memoryMb,
             maxPlayers = currentDraft.maxPlayers,
             port = currentDraft.port,

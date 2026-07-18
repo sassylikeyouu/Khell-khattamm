@@ -14,6 +14,7 @@ class NukkitMOTEngine(
 ) : BaseJavaEngine(context, serverDir, engineVersion, onLog, onStatusChange) {
     override val serverFolderName = "nukkit-mot"
     override val serverEngineName = "Nukkit-MOT"
+    override fun getEngineId(): String = "nukkit-mot"
     override val minJavaVersion = 25
     override val maxJavaVersion = 25
 }

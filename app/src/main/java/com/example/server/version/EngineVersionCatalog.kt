@@ -17,6 +17,14 @@ class EngineVersionCatalog(private val context: Context) {
             
             for (i in 0 until versionsArray.length()) {
                 val obj = versionsArray.getJSONObject(i)
+                val supportedArray = obj.optJSONArray("supportedBedrockVersions")
+                val supportedList = mutableListOf<String>()
+                if (supportedArray != null) {
+                    for (j in 0 until supportedArray.length()) {
+                        supportedList.add(supportedArray.getString(j))
+                    }
+                }
+
                 list.add(EngineVersion(
                     id = obj.getString("id"),
                     engineId = obj.getString("engineId"),
@@ -27,7 +35,9 @@ class EngineVersionCatalog(private val context: Context) {
                     jarFileName = obj.getString("jarFileName"),
                     requiredJavaVersion = obj.getInt("requiredJavaVersion"),
                     compatibilityLabel = obj.getString("compatibilityLabel"),
-                    recommended = obj.getBoolean("recommended")
+                    recommended = obj.getBoolean("recommended"),
+                    supportedBedrockVersions = supportedList,
+                    recommendedBedrockVersion = obj.optString("recommendedBedrockVersion", null)
                 ))
             }
             list

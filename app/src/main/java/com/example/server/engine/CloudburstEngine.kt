@@ -14,6 +14,7 @@ class CloudburstEngine(
 ) : BaseJavaEngine(context, serverDir, engineVersion, onLog, onStatusChange) {
     override val serverFolderName = "cloudburst"
     override val serverEngineName = "Cloudburst"
+    override fun getEngineId(): String = "bedrock_cloudburst_nukkit"
     override val minJavaVersion = 21
     override val maxJavaVersion = 21
 }

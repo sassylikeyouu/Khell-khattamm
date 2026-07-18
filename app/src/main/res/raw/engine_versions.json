@@ -11,7 +11,9 @@
       "jarFileName": "powernukkitx.jar",
       "requiredJavaVersion": 21,
       "compatibilityLabel": "Bedrock compatibility is provided by PowerNukkitX",
-      "recommended": true
+      "recommended": true,
+      "supportedBedrockVersions": ["1.20.80", "1.21.0"],
+      "recommendedBedrockVersion": "1.21.0"
     },
     {
       "id": "powernukkit:1.5.2.1-PN",
@@ -23,7 +25,9 @@
       "jarFileName": "powernukkit.jar",
       "requiredJavaVersion": 21,
       "compatibilityLabel": "Bedrock compatibility is provided by PowerNukkit",
-      "recommended": true
+      "recommended": true,
+      "supportedBedrockVersions": ["1.20.0", "1.20.10"],
+      "recommendedBedrockVersion": "1.20.10"
     },
     {
       "id": "nukkit-pm1e:4437",
@@ -35,7 +39,9 @@
       "jarFileName": "nukkit.jar",
       "requiredJavaVersion": 21,
       "compatibilityLabel": "Bedrock compatibility is provided by the engine",
-      "recommended": true
+      "recommended": true,
+      "supportedBedrockVersions": ["1.20.0", "1.20.50"],
+      "recommendedBedrockVersion": "1.20.50"
     },
     {
       "id": "cloudburst:1.0-20260616.184029-1239",
@@ -47,7 +53,9 @@
       "jarFileName": "cloudburst.jar",
       "requiredJavaVersion": 21,
       "compatibilityLabel": "Bedrock compatibility is provided by Cloudburst",
-      "recommended": true
+      "recommended": true,
+      "supportedBedrockVersions": ["1.21.0", "1.21.2"],
+      "recommendedBedrockVersion": "1.21.2"
     },
     {
       "id": "nukkit-mot:rolling-java25",
@@ -59,7 +67,9 @@
       "jarFileName": "Nukkit-MOT.jar",
       "requiredJavaVersion": 25,
       "compatibilityLabel": "Rolling build resolved by the existing Nukkit-MOT Jenkins provider",
-      "recommended": false
+      "recommended": false,
+      "supportedBedrockVersions": ["1.21.0"],
+      "recommendedBedrockVersion": "1.21.0"
     }
   ]
 }

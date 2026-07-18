@@ -16,5 +16,7 @@ data class EngineVersion(
     val jarFileName: String,
     val requiredJavaVersion: Int,
     val compatibilityLabel: String,
-    val recommended: Boolean
+    val recommended: Boolean,
+    val supportedBedrockVersions: List<String> = emptyList(),
+    val recommendedBedrockVersion: String? = null
 )

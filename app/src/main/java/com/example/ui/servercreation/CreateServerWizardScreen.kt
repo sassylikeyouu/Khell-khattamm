@@ -125,8 +125,8 @@ fun CreateServerWizardScreen(
                         WizardStep.ENGINE -> EngineStep(draft, wizardViewModel::selectEngine)
                         WizardStep.VERSION -> VersionStep(
                             draft = draft,
-                            versions = wizardViewModel.getVersionsForCurrentEngine(),
-                            onVersionSelected = wizardViewModel::selectVersion
+                            bedrockVersions = wizardViewModel.getBedrockVersionsForCurrentEngine(),
+                            onBedrockVersionSelected = wizardViewModel::selectBedrockVersion
                         )
                         WizardStep.WORLD -> WorldStep(draft, wizardViewModel::setDraft)
                         WizardStep.PERFORMANCE -> PerformanceStep(draft, wizardViewModel::setDraft)

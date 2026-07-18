@@ -206,24 +206,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _memoryMb.value = profile.memoryMb
                 val template = TemplateRegistry.ALL_TEMPLATES.find { it.id == profile.engineId } ?: initialTemplate
                 _activeTemplate.value = template
-                val version = versionCatalog.findVersion(profile.engineVersionId) ?: versionCatalog.getDefaultVersion(template.id)
+                val version = versionCatalog.findVersion(profile.engineVersionId)
                 _activeEngineVersion.value = version
                 
                 if (version != null) {
                     serverManager.setTemplate(template, version)
-                } else {
-                    serverManager.setTemplate(template, com.example.server.version.EngineVersion(
-                        id = "placeholder",
-                        engineId = template.id,
-                        versionName = "1.0",
-                        displayName = "Default",
-                        channel = com.example.server.version.ReleaseChannel.STABLE,
-                        downloadUrl = "",
-                        jarFileName = "server.jar",
-                        requiredJavaVersion = 21,
-                        compatibilityLabel = "Latest",
-                        recommended = true
-                    ))
                 }
                 
                 // Migration check: Ensure local profile.properties is in sync with EngineBuild
@@ -265,7 +252,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _memoryMb.value = profile.memoryMb
             val template = TemplateRegistry.ALL_TEMPLATES.find { it.id == profile.engineId } ?: initialTemplate
             _activeTemplate.value = template
-            val version = versionCatalog.findVersion(profile.engineVersionId) ?: versionCatalog.getDefaultVersion(template.id)
+            val version = versionCatalog.findVersion(profile.engineVersionId)
             _activeEngineVersion.value = version
             
             serverManager.switchProfile()
@@ -394,7 +381,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         if (nextProfile != null) {
                             val template = TemplateRegistry.ALL_TEMPLATES.find { it.id == nextProfile.engineId } ?: initialTemplate
                             _activeTemplate.value = template
-                            val version = versionCatalog.findVersion(nextProfile.engineVersionId) ?: versionCatalog.getDefaultVersion(template.id)
+                            val version = versionCatalog.findVersion(nextProfile.engineVersionId)
                             _activeEngineVersion.value = version
                             serverManager.switchProfile()
                             if (version != null) {
@@ -416,6 +403,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startServer() {
         if (_status.value == ServerStatus.ONLINE || _status.value == ServerStatus.STARTING || _status.value == ServerStatus.PREPARING || _status.value == ServerStatus.DOWNLOADING) return
+        
+        if (_activeEngineVersion.value == null) {
+            handleLog("ERROR: Selected engine build could not be resolved from the version catalogue.")
+            _status.value = ServerStatus.FAILED
+            showMessage("Engine build not resolved. Please select a valid version in Settings.")
+            return
+        }
+
         manualStopRequested = false
         addActivity("Server start requested", _activeTemplate.value.name, ActivityType.INFO)
         serverManager.startServer(_memoryMb.value, viewModelScope)

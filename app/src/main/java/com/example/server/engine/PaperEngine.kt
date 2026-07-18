@@ -19,6 +19,7 @@ class PaperEngine(
 ) : BaseJavaEngine(context, serverDir, engineVersion, onLog, onStatusChange) {
     override val serverFolderName = "paper"
     override val serverEngineName = "Paper"
+    override fun getEngineId(): String = "java_paper"
     override val minJavaVersion = 21
     override val maxJavaVersion = 21
 }

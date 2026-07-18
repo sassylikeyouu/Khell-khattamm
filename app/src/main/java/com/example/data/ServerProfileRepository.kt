@@ -44,12 +44,15 @@ class ServerProfileRepository(private val context: Context) {
                     versionCatalog.getDefaultVersion(engineId)?.id ?: ""
                 }
 
-                if (versionId.isEmpty()) {
-                    // Fallback or skip if version is absolutely unknown?
-                    // For now, continue and use empty string which will fail later in runtime validation
+                val bedrockVersion = if (obj.has("bedrockVersion")) {
+                    obj.getString("bedrockVersion")
+                } else {
+                    migrationNeeded = true
+                    val version = versionCatalog.findVersion(versionId)
+                    version?.recommendedBedrockVersion ?: ""
                 }
 
-                list.add(parseProfile(obj, versionId))
+                list.add(parseProfile(obj, versionId, bedrockVersion))
             }
             _profiles.value = list
 
@@ -73,6 +76,7 @@ class ServerProfileRepository(private val context: Context) {
             name = draft.name,
             engineId = draft.engineId,
             engineVersionId = draft.engineVersionId,
+            bedrockVersion = draft.bedrockVersion,
             serverDirectory = profileDir.absolutePath,
             levelName = draft.levelName,
             iconPath = draft.iconPath,
@@ -107,6 +111,7 @@ class ServerProfileRepository(private val context: Context) {
             name = changes.name ?: current.name,
             engineId = changes.engineId ?: current.engineId,
             engineVersionId = changes.engineVersionId ?: current.engineVersionId,
+            bedrockVersion = changes.bedrockVersion ?: current.bedrockVersion,
             levelName = changes.levelName ?: current.levelName,
             iconPath = changes.iconPath ?: current.iconPath,
             port = changes.port ?: current.port,
@@ -175,12 +180,13 @@ class ServerProfileRepository(private val context: Context) {
         }
     }
 
-    private fun parseProfile(obj: JSONObject, versionId: String): ServerProfile {
+    private fun parseProfile(obj: JSONObject, versionId: String, bedrockVersion: String): ServerProfile {
         return ServerProfile(
             id = obj.getString("id"),
             name = obj.getString("name"),
             engineId = obj.getString("engineId"),
             engineVersionId = versionId,
+            bedrockVersion = bedrockVersion,
             serverDirectory = obj.getString("serverDirectory"),
             levelName = obj.getString("levelName"),
             iconPath = obj.optString("iconPath", null),
@@ -199,6 +205,7 @@ class ServerProfileRepository(private val context: Context) {
             put("name", profile.name)
             put("engineId", profile.engineId)
             put("engineVersionId", profile.engineVersionId)
+            put("bedrockVersion", profile.bedrockVersion)
             put("serverDirectory", profile.serverDirectory)
             put("levelName", profile.levelName)
             put("iconPath", profile.iconPath)

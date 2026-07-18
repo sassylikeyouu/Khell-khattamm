@@ -14,6 +14,7 @@ class PowerNukkitXEngine(
 ) : BaseJavaEngine(context, serverDir, engineVersion, onLog, onStatusChange) {
     override val serverFolderName = "powernukkitx"
     override val serverEngineName = "PowerNukkitX"
+    override fun getEngineId(): String = "bedrock_power_nukkit_x"
     override val minJavaVersion = 21
     override val maxJavaVersion = 21
 }

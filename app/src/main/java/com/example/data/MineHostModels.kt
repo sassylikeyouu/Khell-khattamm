@@ -168,6 +168,7 @@ data class ServerCreationDraft(
     val name: String,
     val engineId: String,
     val engineVersionId: String,
+    val bedrockVersion: String,
     val levelName: String = "world",
     val iconPath: String? = null,
     val port: Int = 19132,

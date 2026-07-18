@@ -23,8 +23,8 @@ import com.example.ui.servercreation.WizardTheme
 @Composable
 fun VersionStep(
     draft: CreateServerDraft,
-    versions: List<EngineVersion>,
-    onVersionSelected: (EngineVersion) -> Unit
+    bedrockVersions: List<Pair<String, EngineVersion>>,
+    onBedrockVersionSelected: (String) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -32,30 +32,36 @@ fun VersionStep(
     ) {
         Column {
             Text(
-                "Engine Build",
+                "Minecraft Version",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                 color = WizardTheme.PrimaryText
             )
             Text(
-                "Choose the server-engine build MineHost will install.",
+                "Choose a Minecraft Bedrock version supported by this server engine.",
                 style = MaterialTheme.typography.bodySmall,
                 color = WizardTheme.SecondaryText
             )
         }
 
-        if (versions.isEmpty()) {
+        if (bedrockVersions.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxWidth().height(100.dp),
+                modifier = Modifier.fillMaxWidth().height(100.dp).padding(16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No builds available for this engine.", color = WizardTheme.SecondaryText)
+                Text(
+                    "Compatibility information is not available for this engine build.",
+                    color = WizardTheme.SecondaryText,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         } else {
-            versions.forEach { version ->
-                VersionCard(
-                    version = version,
-                    selected = draft.engineVersionId == version.id,
-                    onClick = { onVersionSelected(version) }
+            bedrockVersions.forEach { (bv, engineVersion) ->
+                BedrockVersionCard(
+                    bedrockVersion = bv,
+                    engineVersion = engineVersion,
+                    selected = draft.bedrockVersion == bv,
+                    onClick = { onBedrockVersionSelected(bv) }
                 )
             }
         }
@@ -63,8 +69,9 @@ fun VersionStep(
 }
 
 @Composable
-private fun VersionCard(
-    version: EngineVersion,
+private fun BedrockVersionCard(
+    bedrockVersion: String,
+    engineVersion: EngineVersion,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -99,10 +106,7 @@ private fun VersionCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = when(version.channel) {
-                        ReleaseChannel.STABLE -> Icons.Default.Check
-                        else -> Icons.Default.Check
-                    },
+                    imageVector = Icons.Default.Check,
                     contentDescription = null,
                     tint = if (selected) WizardTheme.PrimaryBlue else WizardTheme.DisabledText,
                     modifier = Modifier.size(20.dp)
@@ -116,43 +120,35 @@ private fun VersionCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = version.displayName,
-                        modifier = Modifier.weight(1f, fill = false),
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = WizardTheme.PrimaryText
-                        ),
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Minecraft Bedrock",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = WizardTheme.SecondaryText
+                        )
+                        Text(
+                            text = bedrockVersion,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = WizardTheme.PrimaryText
+                            ),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
                     
-                    if (version.recommended) {
+                    if (engineVersion.recommended) {
                         Spacer(Modifier.width(8.dp))
                         VersionTag(text = "Recommended", color = WizardTheme.Success)
-                    }
-
-                    if (version.channel == ReleaseChannel.SNAPSHOT) {
-                        Spacer(Modifier.width(8.dp))
-                        VersionTag(text = "Snapshot", color = WizardTheme.Warning)
-                    } else if (version.channel == ReleaseChannel.PREVIEW) {
-                        Spacer(Modifier.width(8.dp))
-                        VersionTag(text = "Preview", color = WizardTheme.AccentPurple)
                     }
                 }
                 
                 Spacer(Modifier.height(4.dp))
                 
                 Text(
-                    text = version.compatibilityLabel,
+                    text = "Compatible build: ${engineVersion.displayName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = WizardTheme.SecondaryText
-                )
-                
-                Text(
-                    text = "Build: ${version.versionName}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = WizardTheme.SecondaryText.copy(alpha = 0.7f)
                 )
             }
 

@@ -259,6 +259,7 @@ fun ServerCreationScreen(
                 text = if (isEditMode) "Save Changes" else "Create Profile",
                 onClick = {
                     if (isEditMode) {
+                        val defaultVersion = EngineVersionCatalog(context).getDefaultVersion(engineId)
                         viewModel.updateServer(
                             serverId!!,
                             ServerProfileChanges(
@@ -267,11 +268,13 @@ fun ServerCreationScreen(
                                 memoryMb = memoryMb,
                                 maxPlayers = maxPlayers,
                                 port = port,
-                                engineVersionId = EngineVersionCatalog(context).getDefaultVersion(engineId)?.id ?: ""
+                                engineVersionId = defaultVersion?.id ?: "",
+                                bedrockVersion = defaultVersion?.recommendedBedrockVersion ?: ""
                             ),
                             selectedIconUri
                         )
                     } else {
+                        val defaultVersion = EngineVersionCatalog(context).getDefaultVersion(engineId)
                         viewModel.createServer(
                             ServerCreationDraft(
                                 name = serverName,
@@ -279,7 +282,8 @@ fun ServerCreationScreen(
                                 memoryMb = memoryMb,
                                 maxPlayers = maxPlayers,
                                 port = port,
-                                engineVersionId = EngineVersionCatalog(context).getDefaultVersion(engineId)?.id ?: ""
+                                engineVersionId = defaultVersion?.id ?: "",
+                                bedrockVersion = defaultVersion?.recommendedBedrockVersion ?: ""
                             ),
                             selectedIconUri
                         )

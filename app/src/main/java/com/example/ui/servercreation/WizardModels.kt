@@ -50,6 +50,7 @@ data class CreateServerDraft(
     val description: String = "",
     val engine: ServerTemplate? = null,
     val engineVersionId: String? = null,
+    val bedrockVersion: String? = null,
     val worldType: WorldType = WorldType.SURVIVAL,
     val difficulty: Difficulty = Difficulty.NORMAL,
     val seed: String = "",

@@ -41,6 +41,7 @@ abstract class BaseJavaEngine(
     abstract val serverFolderName: String
     open val serverJarName: String get() = engineVersion.jarFileName
     abstract val serverEngineName: String
+    abstract fun getEngineId(): String
     open val minJavaVersion: Int = 21
     open val maxJavaVersion: Int = 21
 
@@ -101,22 +102,41 @@ abstract class BaseJavaEngine(
                 onLog("Version ID: $engineVersionId")
                 onLog("Required Java: $requiredJavaVersion")
                 onLog("Expected JAR: $serverJarName")
-                
+            }
+
+            // More robust engine match check
+            if (engineVersion.engineId != getEngineId()) {
+                withContext(Dispatchers.Main) {
+                    onLog("ERROR: Selected engine build does not belong to this server engine.")
+                    onLog("Engine: ${getEngineId()}, Build Engine: ${engineVersion.engineId}")
+                    onStatusChange(ServerStatus.FAILED)
+                }
+                return@launch
+            }
+
+            withContext(Dispatchers.Main) {
                 val matches = InstalledEngineVersionRepository.matches(rootServerDir, engineVersion)
                 onLog("Installed version matches: $matches")
-                
                 onStatusChange(ServerStatus.PREPARING) 
             }
             
             val jreValid = JavaRuntimeManager.isJavaReady(context, requiredJavaVersion)
             var isVersionValid = InstalledEngineVersionRepository.matches(rootServerDir, engineVersion)
 
-            // Problem 6: Legacy JAR Migration
+            // Problem 3 & 6: Tightened Legacy JAR Migration
             if (!isVersionValid && serverJar.exists()) {
-                if (InstalledEngineVersionRepository.validateJar(serverJar)) {
-                    val metadata = InstalledEngineVersionRepository.read(rootServerDir)
-                    if (metadata == null) {
-                        onLog("Legacy JAR detected. Validating and registering...")
+                val metaExists = InstalledEngineVersionRepository.metadataExists(rootServerDir)
+                val metaReadable = InstalledEngineVersionRepository.metadataIsReadable(rootServerDir)
+                
+                if (!metaExists) {
+                    val versionCatalog = EngineVersionCatalog(context)
+                    val defaultVersion = versionCatalog.getDefaultVersion(getEngineId())
+                    
+                    if (defaultVersion != null && engineVersion.id == defaultVersion.id && 
+                        engineVersion.jarFileName == serverJarName && 
+                        InstalledEngineVersionRepository.validateJar(serverJar)) {
+                        
+                        onLog("Legacy JAR detected. Validating and registering as default...")
                         val installed = InstalledEngineVersion(
                             engineId = engineVersion.engineId,
                             versionId = engineVersion.id,
@@ -129,6 +149,8 @@ abstract class BaseJavaEngine(
                             isVersionValid = true
                         }
                     }
+                } else if (!metaReadable) {
+                    onLog("Installed build metadata is damaged.")
                 }
             }
 
@@ -205,13 +227,19 @@ abstract class BaseJavaEngine(
                     // Safe replacement
                     try {
                         val backupFile = File(rootServerDir, "$serverJarName.bak")
+                        val tempMetaFile = File(rootServerDir, ".minehost/engine-installation.json.tmp")
+                        
+                        // 1. Move old JAR to backup
                         if (serverJar.exists()) {
                             if (backupFile.exists()) backupFile.delete()
-                            serverJar.renameTo(backupFile)
+                            if (!serverJar.renameTo(backupFile)) {
+                                throw IOException("Failed to move active JAR to backup.")
+                            }
                         }
 
+                        // 2. Activate new JAR
                         if (partFile.renameTo(serverJar)) {
-                            // Save installation metadata
+                            // 3. Save installation metadata
                             val installed = InstalledEngineVersion(
                                 engineId = engineVersion.engineId,
                                 versionId = engineVersion.id,
@@ -219,6 +247,7 @@ abstract class BaseJavaEngine(
                                 jarFileName = serverJarName,
                                 installedAt = System.currentTimeMillis()
                             )
+                            
                             if (InstalledEngineVersionRepository.write(rootServerDir, installed)) {
                                 if (backupFile.exists()) backupFile.delete()
                                 onLog("Build installation successful.")
@@ -230,13 +259,23 @@ abstract class BaseJavaEngine(
                         }
                     } catch (e: Exception) {
                         onLog("ERROR: Installation failed: ${e.message}")
-                        // Attempt restore
+                        
+                        // 4. Attempt restoration
                         val backupFile = File(rootServerDir, "$serverJarName.bak")
+                        var restored = false
                         if (backupFile.exists()) {
                             if (serverJar.exists()) serverJar.delete()
-                            backupFile.renameTo(serverJar)
-                            onLog("Restored previous working build.")
+                            if (backupFile.renameTo(serverJar)) {
+                                restored = true
+                            }
                         }
+                        
+                        if (restored) {
+                            onLog("Previous working build restored.")
+                        } else {
+                            onLog("CRITICAL: Previous build restoration failed.")
+                        }
+
                         if (partFile.exists()) partFile.delete()
                         
                         context.stopService(downloadIntent)
