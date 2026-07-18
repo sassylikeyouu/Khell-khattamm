@@ -41,6 +41,7 @@ import com.example.ui.components.MineHostBrandHeader
 import com.example.ui.components.MineHostButton
 import com.example.ui.components.MineHostPageTitle
 import com.example.ui.components.PastelIcon
+import com.example.server.version.EngineVersionCatalog
 import com.example.ui.theme.BlueSoft
 import com.example.ui.theme.MineHostBackgroundBottom
 import com.example.ui.theme.MineHostBackgroundTop
@@ -95,6 +96,8 @@ fun ServerCreationScreen(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri -> selectedIconUri = uri }
     )
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(
         modifier = Modifier
@@ -263,7 +266,8 @@ fun ServerCreationScreen(
                                 engineId = engineId,
                                 memoryMb = memoryMb,
                                 maxPlayers = maxPlayers,
-                                port = port
+                                port = port,
+                                engineVersionId = EngineVersionCatalog(context).getDefaultVersion(engineId)?.id ?: ""
                             ),
                             selectedIconUri
                         )
@@ -274,7 +278,8 @@ fun ServerCreationScreen(
                                 engineId = engineId,
                                 memoryMb = memoryMb,
                                 maxPlayers = maxPlayers,
-                                port = port
+                                port = port,
+                                engineVersionId = EngineVersionCatalog(context).getDefaultVersion(engineId)?.id ?: ""
                             ),
                             selectedIconUri
                         )

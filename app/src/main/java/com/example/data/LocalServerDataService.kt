@@ -277,6 +277,7 @@ class LocalServerDataService(private val rootProvider: () -> File) {
     fun saveLocalServerProfile(
         settings: ServerSettingsState,
         templateId: String,
+        engineVersionId: String,
         iconPath: String?
     ): OperationResult {
         val dir = File(root, ".minehost").apply { mkdirs() }
@@ -287,6 +288,7 @@ class LocalServerDataService(private val rootProvider: () -> File) {
         p["created"] = "true"
         p["serverName"] = settings.serverName
         p["templateId"] = templateId
+        p["engineVersionId"] = engineVersionId
         p["levelName"] = settings.levelName
         p["iconPath"] = iconPath ?: ""
         if (p.getProperty("createdAt").isNullOrBlank()) {
@@ -299,16 +301,33 @@ class LocalServerDataService(private val rootProvider: () -> File) {
         }.getOrElse { OperationResult(false, it.message ?: "Unable to save profile") }
     }
 
-    fun readLocalServerProfile(): LocalServerProfile? {
+    fun readLocalServerProfile(context: android.content.Context): LocalServerProfile? {
         val file = File(root, ".minehost/profile.properties")
         if (!file.exists()) return null
         val p = Properties()
         runCatching { file.inputStream().use(p::load) }.getOrNull() ?: return null
 
+        val templateId = p.getProperty("templateId", "")
+        
+        // Migration: resolve engineVersionId if missing
+        val engineVersionId = if (p.containsKey("engineVersionId")) {
+            p.getProperty("engineVersionId")
+        } else {
+            val catalog = com.example.server.version.EngineVersionCatalog(context)
+            val resolved = catalog.getDefaultVersion(templateId)?.id ?: ""
+            // Persist migrated ID back to profile.properties
+            if (resolved.isNotEmpty()) {
+                p["engineVersionId"] = resolved
+                runCatching { file.outputStream().use { p.store(it, "MineHost Local Server Profile") } }
+            }
+            resolved
+        }
+
         return LocalServerProfile(
             created = p.getProperty("created", "false").toBoolean(),
             serverName = p.getProperty("serverName", "Local Bedrock Server"),
-            templateId = p.getProperty("templateId", ""),
+            templateId = templateId,
+            engineVersionId = engineVersionId,
             levelName = p.getProperty("levelName", "world"),
             iconPath = p.getProperty("iconPath").takeIf { it.isNotBlank() },
             createdAt = p.getProperty("createdAt", "0").toLongOrNull() ?: 0L

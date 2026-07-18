@@ -6,6 +6,7 @@ data class ServerProfile(
     val id: String,
     val name: String,
     val engineId: String,
+    val engineVersionId: String,
     val serverDirectory: String,
     val levelName: String,
     val iconPath: String?,
@@ -20,6 +21,7 @@ data class ServerProfile(
         fun createDraft(
             name: String,
             engineId: String,
+            engineVersionId: String,
             serverDirectory: String,
             levelName: String = "world",
             port: Int = 19132,
@@ -32,6 +34,7 @@ data class ServerProfile(
                 id = UUID.randomUUID().toString(),
                 name = name,
                 engineId = engineId,
+                engineVersionId = engineVersionId,
                 serverDirectory = serverDirectory,
                 levelName = levelName,
                 iconPath = iconPath,
@@ -48,6 +51,7 @@ data class ServerProfile(
 data class ServerProfileChanges(
     val name: String? = null,
     val engineId: String? = null,
+    val engineVersionId: String? = null,
     val levelName: String? = null,
     val iconPath: String? = null,
     val port: Int? = null,

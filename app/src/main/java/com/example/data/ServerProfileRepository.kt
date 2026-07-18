@@ -1,6 +1,7 @@
 package com.example.data
 
 import android.content.Context
+import com.example.server.version.EngineVersionCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +15,7 @@ import java.util.UUID
 class ServerProfileRepository(private val context: Context) {
     private val serversDir = File(context.filesDir, "servers").apply { mkdirs() }
     private val profilesJsonFile = File(serversDir, "profiles.json")
+    private val versionCatalog = EngineVersionCatalog(context)
 
     private val _profiles = MutableStateFlow<List<ServerProfile>>(emptyList())
     val profiles: StateFlow<List<ServerProfile>> = _profiles.asStateFlow()
@@ -28,11 +30,32 @@ class ServerProfileRepository(private val context: Context) {
             val json = profilesJsonFile.readText()
             val array = JSONArray(json)
             val list = mutableListOf<ServerProfile>()
+            var migrationNeeded = false
+
             for (i in 0 until array.length()) {
                 val obj = array.getJSONObject(i)
-                list.add(parseProfile(obj))
+                val engineId = obj.getString("engineId")
+                
+                // Migration logic: if engineVersionId is missing, resolve default
+                val versionId = if (obj.has("engineVersionId")) {
+                    obj.getString("engineVersionId")
+                } else {
+                    migrationNeeded = true
+                    versionCatalog.getDefaultVersion(engineId)?.id ?: ""
+                }
+
+                if (versionId.isEmpty()) {
+                    // Fallback or skip if version is absolutely unknown?
+                    // For now, continue and use empty string which will fail later in runtime validation
+                }
+
+                list.add(parseProfile(obj, versionId))
             }
             _profiles.value = list
+
+            if (migrationNeeded) {
+                saveProfiles(list)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             _profiles.value = emptyList()
@@ -49,9 +72,10 @@ class ServerProfileRepository(private val context: Context) {
             id = id,
             name = draft.name,
             engineId = draft.engineId,
+            engineVersionId = draft.engineVersionId,
             serverDirectory = profileDir.absolutePath,
             levelName = draft.levelName,
-            iconPath = draft.iconPath, // This might need to be copied into the profile dir later
+            iconPath = draft.iconPath,
             port = draft.port,
             memoryMb = draft.memoryMb,
             maxPlayers = draft.maxPlayers,
@@ -82,6 +106,7 @@ class ServerProfileRepository(private val context: Context) {
         val updated = current.copy(
             name = changes.name ?: current.name,
             engineId = changes.engineId ?: current.engineId,
+            engineVersionId = changes.engineVersionId ?: current.engineVersionId,
             levelName = changes.levelName ?: current.levelName,
             iconPath = changes.iconPath ?: current.iconPath,
             port = changes.port ?: current.port,
@@ -150,11 +175,12 @@ class ServerProfileRepository(private val context: Context) {
         }
     }
 
-    private fun parseProfile(obj: JSONObject): ServerProfile {
+    private fun parseProfile(obj: JSONObject, versionId: String): ServerProfile {
         return ServerProfile(
             id = obj.getString("id"),
             name = obj.getString("name"),
             engineId = obj.getString("engineId"),
+            engineVersionId = versionId,
             serverDirectory = obj.getString("serverDirectory"),
             levelName = obj.getString("levelName"),
             iconPath = obj.optString("iconPath", null),
@@ -172,6 +198,7 @@ class ServerProfileRepository(private val context: Context) {
             put("id", profile.id)
             put("name", profile.name)
             put("engineId", profile.engineId)
+            put("engineVersionId", profile.engineVersionId)
             put("serverDirectory", profile.serverDirectory)
             put("levelName", profile.levelName)
             put("iconPath", profile.iconPath)

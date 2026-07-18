@@ -158,6 +158,7 @@ data class LocalServerProfile(
     val created: Boolean,
     val serverName: String,
     val templateId: String,
+    val engineVersionId: String,
     val levelName: String,
     val iconPath: String?,
     val createdAt: Long
@@ -166,6 +167,7 @@ data class LocalServerProfile(
 data class ServerCreationDraft(
     val name: String,
     val engineId: String,
+    val engineVersionId: String,
     val levelName: String = "world",
     val iconPath: String? = null,
     val port: Int = 19132,

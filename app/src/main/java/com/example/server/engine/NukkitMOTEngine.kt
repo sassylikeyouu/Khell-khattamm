@@ -6,12 +6,11 @@ import com.example.server.ServerStatus
 class NukkitMOTEngine(
     context: Context,
     serverDir: java.io.File,
+    engineVersionId: String,
     onLog: (String) -> Unit,
     onStatusChange: (ServerStatus) -> Unit
-) : BaseJavaEngine(context, serverDir, onLog, onStatusChange) {
-    override val serverJarUrl = "GITHUB_API_NUKKIT_MOT"
+) : BaseJavaEngine(context, serverDir, engineVersionId, onLog, onStatusChange) {
     override val serverFolderName = "nukkit-mot"
-    override val serverJarName = "Nukkit-MOT.jar"
     override val serverEngineName = "Nukkit-MOT"
     override val minJavaVersion = 25
     override val maxJavaVersion = 25

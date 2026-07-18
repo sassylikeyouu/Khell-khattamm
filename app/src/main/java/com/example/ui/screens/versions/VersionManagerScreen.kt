@@ -60,6 +60,7 @@ fun VersionManagerScreen(
     onBack: () -> Unit
 ) {
     val active by viewModel.activeTemplate.collectAsState()
+    val activeVersion by viewModel.activeEngineVersion.collectAsState()
     val status by viewModel.status.collectAsState()
 
     Column(
@@ -80,8 +81,8 @@ fun VersionManagerScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             MineHostPageTitle(
-                title = "Server Version Manager",
-                subtitle = "Choose the Bedrock-compatible engine used by the local server."
+                title = "Server Engine Manager",
+                subtitle = "Choose the Minecraft engine build used by the local server."
             )
 
             GlassCard(Modifier.fillMaxWidth()) {
@@ -98,11 +99,18 @@ fun VersionManagerScreen(
                     Spacer(Modifier.size(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
-                            "Current Server Engine",
+                            "Current Engine Build",
                             style = MaterialTheme.typography.bodySmall,
                             color = MineHostTextSecondary
                         )
                         Text(active.name, style = MaterialTheme.typography.headlineSmall)
+                        activeVersion?.let {
+                            Text(
+                                "Build: ${it.displayName}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MineHostBlue
+                            )
+                        }
                         StatusBadge(
                             text = "Installed",
                             color = MineHostGreen,

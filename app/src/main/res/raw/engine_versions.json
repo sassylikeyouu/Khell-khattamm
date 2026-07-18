@@ -1,0 +1,65 @@
+{
+  "catalogVersion": 1,
+  "versions": [
+    {
+      "id": "powernukkitx:2.0.0",
+      "engineId": "bedrock_power_nukkit_x",
+      "versionName": "2.0.0",
+      "displayName": "PowerNukkitX 2.0.0",
+      "channel": "STABLE",
+      "downloadUrl": "https://github.com/PowerNukkitX/PowerNukkitX/releases/download/2.0.0/powernukkitx.jar",
+      "jarFileName": "powernukkitx.jar",
+      "requiredJavaVersion": 21,
+      "compatibilityLabel": "Bedrock compatibility is provided by PowerNukkitX",
+      "recommended": true
+    },
+    {
+      "id": "powernukkit:1.5.2.1-PN",
+      "engineId": "bedrock_power_nukkit",
+      "versionName": "1.5.2.1-PN",
+      "displayName": "PowerNukkit 1.5.2.1-PN",
+      "channel": "STABLE",
+      "downloadUrl": "https://github.com/PowerNukkit/PowerNukkit/releases/download/v1.5.2.1-PN/powernukkit-1.5.2.1-PN-shaded.jar",
+      "jarFileName": "powernukkit.jar",
+      "requiredJavaVersion": 21,
+      "compatibilityLabel": "Bedrock compatibility is provided by PowerNukkit",
+      "recommended": true
+    },
+    {
+      "id": "nukkit-pm1e:4437",
+      "engineId": "bedrock_nukkit",
+      "versionName": "4437",
+      "displayName": "Nukkit PM1E Build 4437",
+      "channel": "STABLE",
+      "downloadUrl": "https://github.com/PetteriM1/NukkitPetteriM1Edition/releases/download/4437/Nukkit-PM1E.jar",
+      "jarFileName": "nukkit.jar",
+      "requiredJavaVersion": 21,
+      "compatibilityLabel": "Bedrock compatibility is provided by the engine",
+      "recommended": true
+    },
+    {
+      "id": "cloudburst:1.0-20260616.184029-1239",
+      "engineId": "bedrock_cloudburst_nukkit",
+      "versionName": "1.0-20260616.184029-1239",
+      "displayName": "Cloudburst Snapshot Build 1239",
+      "channel": "SNAPSHOT",
+      "downloadUrl": "https://repo.opencollab.dev/maven-snapshots/cn/nukkit/nukkit/1.0-SNAPSHOT/nukkit-1.0-20260616.184029-1239.jar",
+      "jarFileName": "cloudburst.jar",
+      "requiredJavaVersion": 21,
+      "compatibilityLabel": "Bedrock compatibility is provided by Cloudburst",
+      "recommended": true
+    },
+    {
+      "id": "nukkit-mot:rolling-java25",
+      "engineId": "nukkit-mot",
+      "versionName": "Rolling Java 25",
+      "displayName": "Nukkit-MOT Rolling Java 25 Build",
+      "channel": "PREVIEW",
+      "downloadUrl": "GITHUB_API_NUKKIT_MOT",
+      "jarFileName": "Nukkit-MOT.jar",
+      "requiredJavaVersion": 25,
+      "compatibilityLabel": "Rolling build resolved by the existing Nukkit-MOT Jenkins provider",
+      "recommended": false
+    }
+  ]
+}

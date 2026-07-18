@@ -122,12 +122,20 @@ fun CreateServerWizardScreen(
                 WizardCard {
                     when (currentStep) {
                         WizardStep.BASICS -> BasicsStep(draft, wizardViewModel::setDraft)
-                        WizardStep.ENGINE -> EngineStep(draft, wizardViewModel::setDraft)
-                        WizardStep.VERSION -> VersionStep(draft, wizardViewModel::setDraft)
+                        WizardStep.ENGINE -> EngineStep(draft, wizardViewModel::selectEngine)
+                        WizardStep.VERSION -> VersionStep(
+                            draft = draft,
+                            versions = wizardViewModel.getVersionsForCurrentEngine(),
+                            onVersionSelected = wizardViewModel::selectVersion
+                        )
                         WizardStep.WORLD -> WorldStep(draft, wizardViewModel::setDraft)
                         WizardStep.PERFORMANCE -> PerformanceStep(draft, wizardViewModel::setDraft)
                         WizardStep.NETWORK -> NetworkStep(draft, wizardViewModel::setDraft)
-                        WizardStep.REVIEW -> ReviewStep(draft, wizardViewModel::setDraft)
+                        WizardStep.REVIEW -> ReviewStep(
+                            draft = draft,
+                            engineBuildName = draft.engineVersionId?.let { wizardViewModel.getEngineVersion(it)?.displayName } ?: "Unknown",
+                            onDraftUpdate = wizardViewModel::setDraft
+                        )
                     }
                 }
                 Spacer(Modifier.height(24.dp))

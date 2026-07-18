@@ -49,7 +49,7 @@ data class CreateServerDraft(
     val serverName: String = "",
     val description: String = "",
     val engine: ServerTemplate? = null,
-    val version: String = "1.20.80",
+    val engineVersionId: String? = null,
     val worldType: WorldType = WorldType.SURVIVAL,
     val difficulty: Difficulty = Difficulty.NORMAL,
     val seed: String = "",

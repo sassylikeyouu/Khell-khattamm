@@ -45,7 +45,8 @@ class ServerManager(
         activeTemplate = template
         val profile = profileProvider()
         val serverDir = profile?.let { File(it.serverDirectory) } ?: File(context.filesDir, "minecraft/engines/default")
-        currentEngine = ServerFactory.createEngine(context, serverDir, template, onLog, internalOnStatusChange)
+        val versionId = profile?.engineVersionId ?: ""
+        currentEngine = ServerFactory.createEngine(context, serverDir, template, versionId, onLog, internalOnStatusChange)
         currentEngine?.setOnlineMode(onlineMode)
         onLog("Switched to template: ${template.name}")
     }
@@ -59,7 +60,8 @@ class ServerManager(
         if (currentEngine == null) {
             val profile = profileProvider()
             val serverDir = profile?.let { File(it.serverDirectory) } ?: File(context.filesDir, "minecraft/engines/default")
-            currentEngine = ServerFactory.createEngine(context, serverDir, activeTemplate, onLog, internalOnStatusChange)
+            val versionId = profile?.engineVersionId ?: ""
+            currentEngine = ServerFactory.createEngine(context, serverDir, activeTemplate, versionId, onLog, internalOnStatusChange)
             currentEngine?.setOnlineMode(onlineMode)
         }
         return currentEngine!!

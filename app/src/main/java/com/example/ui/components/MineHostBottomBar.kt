@@ -39,16 +39,13 @@ fun MineHostBottomBar(
             ) {
                 val destinations = listOf(
                     NavigationItemData("Dashboard", Icons.Outlined.GridView, Icons.Filled.GridView, MineHostDestination.Dashboard),
+                    NavigationItemData("Console", Icons.Outlined.Terminal, Icons.Filled.Terminal, MineHostDestination.Console),
                     NavigationItemData("Marketplace", Icons.Outlined.Storefront, Icons.Filled.Storefront, MineHostDestination.Marketplace),
                     NavigationItemData("AI Assistant", Icons.Outlined.AutoAwesome, Icons.Filled.AutoAwesome, MineHostDestination.AiAssistantTab)
                 )
 
                 destinations.forEach { item ->
-                    val isSelected = when (item.label) {
-                        "Dashboard" -> currentRoute == MineHostDestination.Dashboard.route
-                        "Servers" -> false
-                        else -> currentRoute == item.destination.route
-                    }
+                    val isSelected = currentRoute == item.destination.route
                     MineHostNavigationItem(
                         label = item.label,
                         inactiveIcon = item.inactiveIcon,

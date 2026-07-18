@@ -64,6 +64,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _activeTemplate = MutableStateFlow(initialTemplate)
     val activeTemplate: StateFlow<ServerTemplate> = _activeTemplate.asStateFlow()
 
+    private val _activeEngineVersion = MutableStateFlow<com.example.server.version.EngineVersion?>(null)
+    val activeEngineVersion: StateFlow<com.example.server.version.EngineVersion?> = _activeEngineVersion.asStateFlow()
+
+    private val versionCatalog = com.example.server.version.EngineVersionCatalog(appContext)
+
     private val _currentFiles = MutableStateFlow<List<FileInfo>>(emptyList())
     val currentFiles: StateFlow<List<FileInfo>> = _currentFiles.asStateFlow()
 
@@ -200,7 +205,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (profile != null) {
                 _memoryMb.value = profile.memoryMb
                 _activeTemplate.value = TemplateRegistry.ALL_TEMPLATES.find { it.id == profile.engineId } ?: initialTemplate
+                _activeEngineVersion.value = versionCatalog.findVersion(profile.engineVersionId)
                 serverManager.setTemplate(_activeTemplate.value)
+                // Migration check: Ensure local profile.properties is in sync with EngineBuild
+                val localProfile = dataService.readLocalServerProfile(appContext)
+                if (localProfile != null && localProfile.engineVersionId != profile.engineVersionId) {
+                    val settings = dataService.readProperties()
+                    dataService.saveLocalServerProfile(settings, profile.engineId, profile.engineVersionId, profile.iconPath)
+                }
             } else {
                 serverManager.setTemplate(initialTemplate)
             }
@@ -230,6 +242,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (profile != null) {
             _memoryMb.value = profile.memoryMb
             _activeTemplate.value = TemplateRegistry.ALL_TEMPLATES.find { it.id == profile.engineId } ?: initialTemplate
+            _activeEngineVersion.value = versionCatalog.findVersion(profile.engineVersionId)
             serverManager.switchProfile()
             serverManager.setTemplate(_activeTemplate.value)
             refreshAllLocalData()
@@ -274,7 +287,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         maxPlayers = profile.maxPlayers
                     )
                     serverDataService.writeProperties(settings)
-                    serverDataService.saveLocalServerProfile(settings, profile.engineId, finalIconPath)
+                    serverDataService.saveLocalServerProfile(settings, profile.engineId, profile.engineVersionId, finalIconPath)
                     
                     selectServer(profile.id)
                     _operationInProgress.value = false
@@ -319,7 +332,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             maxPlayers = updated.maxPlayers
                         )
                         serverDataService.writeProperties(newSettings)
-                        serverDataService.saveLocalServerProfile(newSettings, updated.engineId, updated.iconPath)
+                        serverDataService.saveLocalServerProfile(newSettings, updated.engineId, updated.engineVersionId, updated.iconPath)
                         
                         _memoryMb.value = updated.memoryMb
                         _serverSettings.value = newSettings
@@ -622,7 +635,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     memoryMb = safe.memoryMb,
                     maxPlayers = safe.maxPlayers,
                     port = safe.port,
-                    levelName = safe.levelName
+                    levelName = safe.levelName,
+                    engineVersionId = profiles.value.find { it.id == currentId }?.engineVersionId
                 )
             )
         } else {

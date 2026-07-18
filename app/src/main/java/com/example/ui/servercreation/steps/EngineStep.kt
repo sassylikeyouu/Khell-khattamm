@@ -19,7 +19,7 @@ import com.example.ui.servercreation.components.WizardInfoBanner
 @Composable
 fun EngineStep(
     draft: CreateServerDraft,
-    onDraftUpdate: (CreateServerDraft) -> Unit
+    onEngineSelected: (com.example.server.template.ServerTemplate) -> Unit
 ) {
     val templates = TemplateRegistry.ALL_TEMPLATES
 
@@ -45,7 +45,7 @@ fun EngineStep(
                 title = template.name,
                 description = template.description,
                 selected = draft.engine?.id == template.id,
-                onClick = { onDraftUpdate(draft.copy(engine = template)) },
+                onClick = { onEngineSelected(template) },
                 icon = {
                     EngineArtwork(
                         engineId = template.id,

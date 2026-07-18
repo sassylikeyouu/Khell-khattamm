@@ -24,6 +24,7 @@ sealed class MineHostDestination(val route: String) {
     data object Activity : MineHostDestination("activity/{serverId}") { fun createRoute(serverId: String) = "activity/$serverId" }
     data object AiAssistant : MineHostDestination("ai_assistant/{serverId}") { fun createRoute(serverId: String) = "ai_assistant/$serverId" }
     data object AiAssistantTab : MineHostDestination("ai_assistant_global")
+    data object Console : MineHostDestination("console")
     data object PerformanceRecommendations : MineHostDestination("performance/{serverId}") { fun createRoute(serverId: String) = "performance/$serverId" }
     data object CrashAnalysis : MineHostDestination("crash_analysis/{serverId}") { fun createRoute(serverId: String) = "crash_analysis/$serverId" }
     data object ServerHealth : MineHostDestination("server_health/{serverId}") { fun createRoute(serverId: String) = "server_health/$serverId" }

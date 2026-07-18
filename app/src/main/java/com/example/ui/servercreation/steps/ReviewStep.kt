@@ -25,6 +25,7 @@ import com.example.ui.servercreation.components.ReviewSuccessArtwork
 @Composable
 fun ReviewStep(
     draft: CreateServerDraft,
+    engineBuildName: String,
     onDraftUpdate: (CreateServerDraft) -> Unit
 ) {
     Column(
@@ -65,7 +66,7 @@ fun ReviewStep(
                 .background(Color.White)
         ) {
             ReviewRow(icon = Icons.Outlined.Settings, label = "Engine", value = draft.engine?.name ?: "Bedrock")
-            ReviewRow(icon = Icons.Outlined.History, label = "Version", value = draft.version)
+            ReviewRow(icon = Icons.Outlined.History, label = "Engine Build", value = engineBuildName)
             ReviewRow(icon = Icons.Outlined.Public, label = "World Type", value = draft.worldType.label)
             ReviewRow(icon = Icons.Outlined.Flag, label = "Difficulty", value = draft.difficulty.label)
             ReviewRow(icon = Icons.Outlined.Memory, label = "Memory", value = "${draft.memoryMb} MB")

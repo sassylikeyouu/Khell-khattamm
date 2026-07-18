@@ -21,15 +21,25 @@ import com.example.server.health.ServerHealthMonitor
 import com.example.server.NetworkUtils
 
 
+import com.example.server.version.EngineVersionCatalog
+import com.example.server.version.EngineVersion
+import com.example.server.version.ReleaseChannel
+
 abstract class BaseJavaEngine(
     val context: Context,
     private val serverDir: File,
+    val engineVersionId: String,
     val onLog: (String) -> Unit,
     val onStatusChange: (ServerStatus) -> Unit
 ) : ServerEngine {
-    abstract val serverJarUrl: String
+    private val versionCatalog = EngineVersionCatalog(context)
+    val engineVersion: EngineVersion? = if (engineVersionId.isNotEmpty()) {
+        versionCatalog.findVersion(engineVersionId)
+    } else null
+
+    open val serverJarUrl: String get() = engineVersion?.downloadUrl ?: ""
     abstract val serverFolderName: String
-    abstract val serverJarName: String
+    open val serverJarName: String get() = engineVersion?.jarFileName ?: "${serverEngineName.lowercase()}.jar"
     abstract val serverEngineName: String
     open val minJavaVersion: Int = 21
     open val maxJavaVersion: Int = 21
@@ -67,10 +77,13 @@ abstract class BaseJavaEngine(
     fun checkIntegrity() {
         scope.launch {
             val jreValid = JavaRuntimeManager.isJavaReady(context, requiredJavaVersion)
-            if (!jreValid || !serverJar.exists()) {
-                withContext(Dispatchers.Main) { onLog("Some required files are missing. They will be downloaded automatically when you start the server.") }
+            val installationMeta = File(rootServerDir, ".minehost/engine-installation.json")
+            val isVersionValid = installationMeta.exists() && installationMeta.readText().contains("\"versionId\":\"$engineVersionId\"")
+            
+            if (!jreValid || !serverJar.exists() || !isVersionValid) {
+                withContext(Dispatchers.Main) { onLog("Some required files are missing or version mismatch. They will be downloaded automatically when you start the server.") }
             } else {
-                withContext(Dispatchers.Main) { onLog("System integrity check passed. Files are ready.") }
+                withContext(Dispatchers.Main) { onLog("System integrity check passed. Build ${engineVersion?.displayName ?: "Unknown"} is ready.") }
             }
         }
     }
@@ -86,10 +99,20 @@ abstract class BaseJavaEngine(
             withContext(Dispatchers.Main) { onStatusChange(ServerStatus.PREPARING) }
             
             val jreValid = JavaRuntimeManager.isJavaReady(context, requiredJavaVersion)
-            val filesMissing = !jreValid || !serverJar.exists()
+            val installationMeta = File(rootServerDir, ".minehost/engine-installation.json")
+            val isVersionValid = installationMeta.exists() && installationMeta.readText().contains("\"versionId\":\"$engineVersionId\"")
+            val filesMissing = !jreValid || !serverJar.exists() || !isVersionValid
 
-            // Start Download Service if files are missing
+            // Start Download Service if files are missing or version mismatch
             if (filesMissing) {
+                if (serverJarUrl.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        onLog("ERROR: No download URL for this engine version.")
+                        onStatusChange(ServerStatus.FAILED)
+                    }
+                    return@launch
+                }
+
                 val downloadIntent = android.content.Intent(context, com.example.server.DownloadForegroundService::class.java)
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                     context.startForegroundService(downloadIntent)
@@ -99,8 +122,9 @@ abstract class BaseJavaEngine(
 
                 withContext(Dispatchers.Main) { 
                     onStatusChange(ServerStatus.DOWNLOADING)
-                    onLog("Files missing. Initiating setup...") 
+                    onLog("Files missing or version mismatch. Initiating setup for ${engineVersion?.displayName}...") 
                 }
+                
                 if (!jreValid) {
                     val success = JavaRuntimeManager.ensureJavaReady(context, requiredJavaVersion) { progress: String ->
                         scope.launch(Dispatchers.Main) { onLog(progress) }
@@ -114,7 +138,14 @@ abstract class BaseJavaEngine(
                         return@launch
                     }
                 }
-                if (!serverJar.exists()) {
+                
+                if (!serverJar.exists() || !isVersionValid) {
+                    // If version mismatch, clean up old jar first
+                    if (serverJar.exists() && !isVersionValid) {
+                        onLog("Version mismatch. Replacing old build with ${engineVersion?.displayName}...")
+                        serverJar.delete()
+                    }
+
                     withContext(Dispatchers.Main) { onLog("2. Download started: $serverJarName") }
                     val downloadSuccess = Downloader.downloadServerJar(serverJarUrl, serverJar) { progress: String ->
                         scope.launch(Dispatchers.Main) { onLog(progress) }
@@ -126,6 +157,20 @@ abstract class BaseJavaEngine(
                             onStatusChange(ServerStatus.FAILED)
                         }
                         return@launch
+                    }
+
+                    // Save installation metadata
+                    try {
+                        val metaDir = File(rootServerDir, ".minehost").apply { mkdirs() }
+                        val metaFile = File(metaDir, "engine-installation.json")
+                        val metaJson = org.json.JSONObject().apply {
+                            put("versionId", engineVersionId)
+                            put("installedAt", System.currentTimeMillis())
+                            put("jarName", serverJarName)
+                        }
+                        metaFile.writeText(metaJson.toString(2))
+                    } catch (e: Exception) {
+                        onLog("Warning: Failed to save installation metadata.")
                     }
                 }
                 // Stop download service after success

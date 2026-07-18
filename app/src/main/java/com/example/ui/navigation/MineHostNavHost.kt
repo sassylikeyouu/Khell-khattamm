@@ -38,9 +38,9 @@ fun MineHostNavHost(appState: MineHostAppState, viewModel: MainViewModel, modifi
     val route = appState.currentDestination?.route
     val rootRoutes = setOf(
         MineHostDestination.Dashboard.route,
+        MineHostDestination.Console.route,
         MineHostDestination.Marketplace.route,
-        MineHostDestination.AiAssistantTab.route,
-        MineHostDestination.Profile.route
+        MineHostDestination.AiAssistantTab.route
     )
     val snackbar = remember { SnackbarHostState() }
     val startDestination = MineHostDestination.Dashboard.route
@@ -59,6 +59,10 @@ fun MineHostNavHost(appState: MineHostAppState, viewModel: MainViewModel, modifi
         )
         NavHost(appState.navController, startDestination, modifier.padding(safePadding)) {
             composable(MineHostDestination.Dashboard.route) { DashboardScreen(viewModel) { appState.navController.navigate(it) } }
+            
+            composable(MineHostDestination.Console.route) { 
+                ConsoleTabScreen(viewModel) { appState.navController.navigate(it) }
+            }
 
             composable(MineHostDestination.Plugins.route) { PluginManagerScreen(viewModel) { appState.navController.navigate(MineHostDestination.Marketplace.route) } }
             composable(MineHostDestination.AiAssistantTab.route) { 

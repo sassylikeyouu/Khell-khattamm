@@ -16,16 +16,17 @@ object ServerFactory {
         context: Context,
         serverDir: java.io.File,
         template: ServerTemplate,
+        engineVersionId: String,
         onLog: (String) -> Unit,
         onStatusChange: (ServerStatus) -> Unit
     ): ServerEngine {
         return when (template.id) {
-            "bedrock_power_nukkit" -> PowerNukkitEngine(context, serverDir, onLog, onStatusChange)
-            "bedrock_power_nukkit_x" -> PowerNukkitXEngine(context, serverDir, onLog, onStatusChange)
-            "bedrock_nukkit" -> NukkitEngine(context, serverDir, onLog, onStatusChange)
-            "bedrock_cloudburst_nukkit" -> CloudburstEngine(context, serverDir, onLog, onStatusChange)
-            "nukkit-mot" -> NukkitMOTEngine(context, serverDir, onLog, onStatusChange)
-            "java_paper" -> PaperEngine(context, serverDir, onLog, onStatusChange)
+            "bedrock_power_nukkit" -> PowerNukkitEngine(context, serverDir, engineVersionId, onLog, onStatusChange)
+            "bedrock_power_nukkit_x" -> PowerNukkitXEngine(context, serverDir, engineVersionId, onLog, onStatusChange)
+            "bedrock_nukkit" -> NukkitEngine(context, serverDir, engineVersionId, onLog, onStatusChange)
+            "bedrock_cloudburst_nukkit" -> CloudburstEngine(context, serverDir, engineVersionId, onLog, onStatusChange)
+            "nukkit-mot" -> NukkitMOTEngine(context, serverDir, engineVersionId, onLog, onStatusChange)
+            "java_paper" -> PaperEngine(context, serverDir, engineVersionId, onLog, onStatusChange)
             else -> {
                 onLog("Error: Engine ${template.name} is not supported in this version.")
                 // Return a dummy engine that just errors out

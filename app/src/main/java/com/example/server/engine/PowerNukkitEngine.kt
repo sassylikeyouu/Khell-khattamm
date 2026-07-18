@@ -6,12 +6,11 @@ import com.example.server.ServerStatus
 class PowerNukkitEngine(
     context: Context,
     serverDir: java.io.File,
+    engineVersionId: String,
     onLog: (String) -> Unit,
     onStatusChange: (ServerStatus) -> Unit
-) : BaseJavaEngine(context, serverDir, onLog, onStatusChange) {
-    override val serverJarUrl = "https://github.com/PowerNukkit/PowerNukkit/releases/download/v1.5.2.1-PN/powernukkit-1.5.2.1-PN-shaded.jar"
+) : BaseJavaEngine(context, serverDir, engineVersionId, onLog, onStatusChange) {
     override val serverFolderName = "powernukkit"
-    override val serverJarName = "powernukkit.jar"
     override val serverEngineName = "PowerNukkit"
     override val minJavaVersion = 8
     override val maxJavaVersion = 21
